@@ -1,9 +1,9 @@
-defmodule LtzfAdmin.MixProject do
+defmodule LtzfAp.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :ltzf_admin,
+      app: :ltzf_ap,
       version: "0.1.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -18,7 +18,7 @@ defmodule LtzfAdmin.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {LtzfAdmin.Application, []},
+      mod: {LtzfAp.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
@@ -53,6 +53,7 @@ defmodule LtzfAdmin.MixProject do
       {:pbkdf2_elixir, "~> 1.4"},
       {:guardian, "~> 2.3"},
       {:httpoison, "~> 2.0"},
+      {:calendar, "~> 1.0"},
     ]
   end
 

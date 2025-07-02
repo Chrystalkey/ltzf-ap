@@ -1,4 +1,4 @@
-defmodule LtzfAdmin.Repo.Migrations.CreateAuditLogs do
+defmodule LtzfAp.Repo.Migrations.CreateAuditLogs do
   use Ecto.Migration
 
   def change do

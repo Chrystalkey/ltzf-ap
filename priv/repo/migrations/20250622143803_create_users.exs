@@ -1,4 +1,4 @@
-defmodule LtzfAdmin.Repo.Migrations.CreateUsers do
+defmodule LtzfAp.Repo.Migrations.CreateUsers do
   use Ecto.Migration
 
   def change do

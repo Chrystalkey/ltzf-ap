@@ -10,8 +10,246 @@
 // into your javascript bundle:
 // * deps/phoenix_live_view/priv/static/phoenix_live_view.js
 
+// Shared JavaScript for data management pages
+class DataManagementPage {
+  constructor(config) {
+    this.config = config;
+    this.currentPage = 1;
+    this.totalPages = 1;
+    this.currentFilters = {};
+    
+    this.init();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.loadData(1, {});
+  }
+
+  setupEventListeners() {
+    // Filter form
+    const filterForm = document.getElementById('filter-form');
+    if (filterForm) {
+      filterForm.addEventListener('submit', (e) => this.handleFilterSubmit(e));
+    }
+
+    // Pagination buttons
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
+    const prevBtnMobile = document.getElementById('prev-page-mobile');
+    const nextBtnMobile = document.getElementById('next-page-mobile');
+
+    if (prevBtn) prevBtn.addEventListener('click', () => this.handlePagination('prev'));
+    if (nextBtn) nextBtn.addEventListener('click', () => this.handlePagination('next'));
+    if (prevBtnMobile) prevBtnMobile.addEventListener('click', () => this.handlePagination('prev'));
+    if (nextBtnMobile) nextBtnMobile.addEventListener('click', () => this.handlePagination('next'));
+  }
+
+  showLoading() {
+    document.getElementById('loading-state').style.display = 'block';
+    document.getElementById('results-container').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('pagination').style.display = 'none';
+  }
+
+  showResults() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('results-container').style.display = 'block';
+    document.getElementById('pagination').style.display = 'block';
+  }
+
+  showEmpty() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('results-container').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('pagination').style.display = 'none';
+  }
+
+  buildQueryString(params) {
+    const searchParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] && params[key] !== '') {
+        searchParams.append(key, params[key]);
+      }
+    });
+    return searchParams.toString();
+  }
+
+  updatePaginationButtons() {
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
+    const prevBtnMobile = document.getElementById('prev-page-mobile');
+    const nextBtnMobile = document.getElementById('next-page-mobile');
+    
+    // Update desktop buttons
+    if (this.currentPage <= 1) {
+      prevBtn.disabled = true;
+      prevBtn.className = 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed';
+    } else {
+      prevBtn.disabled = false;
+      prevBtn.className = 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50';
+    }
+    
+    if (this.currentPage >= this.totalPages) {
+      nextBtn.disabled = true;
+      nextBtn.className = 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed';
+    } else {
+      nextBtn.disabled = false;
+      nextBtn.className = 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50';
+    }
+    
+    // Update mobile buttons
+    if (this.currentPage <= 1) {
+      prevBtnMobile.disabled = true;
+      prevBtnMobile.className = 'relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed';
+    } else {
+      prevBtnMobile.disabled = false;
+      prevBtnMobile.className = 'relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50';
+    }
+    
+    if (this.currentPage >= this.totalPages) {
+      nextBtnMobile.disabled = true;
+      nextBtnMobile.className = 'ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed';
+    } else {
+      nextBtnMobile.disabled = false;
+      nextBtnMobile.className = 'ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50';
+    }
+  }
+
+  async loadData(page = 1, filters = {}) {
+    this.showLoading();
+    
+    const root = document.getElementById(this.config.pageId);
+    const backendUrl = root.getAttribute('data-backend-url');
+    const apiKey = root.getAttribute('data-api-key');
+    
+    if (!backendUrl || !apiKey) {
+      this.showEmpty();
+      return;
+    }
+
+    const params = { ...filters, page: page, per_page: 20 };
+    const queryString = this.buildQueryString(params);
+    
+    try {
+      const response = await fetch(`${backendUrl}${this.config.apiEndpoint}?${queryString}`, {
+        headers: { 'X-API-Key': apiKey }
+      });
+
+      if (!response.ok) throw new Error('Network response was not ok');
+      
+      // Capture pagination headers before parsing JSON
+      const totalCount = response.headers.get('X-Total-Count');
+      const responseTotalPages = response.headers.get('X-Total-Pages');
+      
+      const data = await response.json();
+      const resultsList = document.getElementById('results-list');
+      resultsList.innerHTML = '';
+      
+      if (data && data.length > 0) {
+        data.forEach(item => {
+          const li = document.createElement('li');
+          li.innerHTML = this.config.renderItem(item);
+          resultsList.appendChild(li);
+        });
+        
+        // Update pagination info and state
+        if (totalCount && responseTotalPages) {
+          document.getElementById('page-info').textContent = `page ${page} of ${responseTotalPages} (${totalCount} total)`;
+          this.currentPage = page;
+          this.totalPages = parseInt(responseTotalPages);
+        } else {
+          // Fallback: if no pagination headers, assume single page
+          document.getElementById('page-info').textContent = `page 1 of 1 (${data.length} items)`;
+          this.currentPage = 1;
+          this.totalPages = 1;
+        }
+        
+        this.updatePaginationButtons();
+        this.showResults();
+      } else {
+        // No data returned - show appropriate message
+        if (page === 1) {
+          // First page with no results
+          document.getElementById('empty-state').innerHTML = `
+            <h3 class="mt-2 text-sm font-medium text-gray-900">${this.config.emptyText}</h3>
+            <p class="mt-1 text-sm text-gray-500">No items match your current filters.</p>
+          `;
+        } else {
+          // Later page with no results - this shouldn't happen with proper pagination
+          document.getElementById('empty-state').innerHTML = `
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No more items available</h3>
+            <p class="mt-1 text-sm text-gray-500">This is all the data we can retrieve from the backend.</p>
+          `;
+        }
+        this.showEmpty();
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      this.showEmpty();
+    }
+  }
+
+  handleFilterSubmit(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const filters = {};
+    for (let [key, value] of formData.entries()) {
+      if (value) filters[key] = value;
+    }
+    this.currentFilters = filters;
+    this.currentPage = 1;
+    this.loadData(this.currentPage, filters);
+  }
+
+  handlePagination(direction) {
+    if (direction === 'prev' && this.currentPage > 1) {
+      this.loadData(this.currentPage - 1, this.currentFilters);
+    } else if (direction === 'next' && this.currentPage < this.totalPages) {
+      this.loadData(this.currentPage + 1, this.currentFilters);
+    }
+  }
+}
+
+// Export for use in other modules
+window.DataManagementPage = DataManagementPage;
+
+// Flash message auto-dismiss functionality
+function setupFlashMessages() {
+  const flashMessages = document.querySelectorAll('.flash-message');
+  
+  flashMessages.forEach(function(flash) {
+    const timeout = flash.dataset.timeout || 5000;
+    
+    // Auto-dismiss after timeout
+    const timer = setTimeout(function() {
+      flash.style.opacity = '0';
+      flash.style.transform = 'translate(-50%, -100%)';
+      setTimeout(function() {
+        flash.remove();
+      }, 300);
+    }, parseInt(timeout));
+    
+    // Manual close button
+    const closeBtn = flash.querySelector('.flash-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        clearTimeout(timer);
+        flash.style.opacity = '0';
+        flash.style.transform = 'translate(-50%, -100%)';
+        setTimeout(function() {
+          flash.remove();
+        }, 300);
+      });
+    }
+  });
+}
+
 // Handle data-method links for DELETE and POST requests
 document.addEventListener('DOMContentLoaded', function() {
+  // Setup flash messages
+  setupFlashMessages();
+  
   // Handle links with data-method attribute
   document.addEventListener('click', function(e) {
     var link = e.target.closest('a[data-method]');

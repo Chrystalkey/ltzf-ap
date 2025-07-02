@@ -1,5 +1,5 @@
-defmodule LtzfAdminWeb.PageControllerTest do
-  use LtzfAdminWeb.ConnCase
+defmodule LtzfApWeb.PageControllerTest do
+  use LtzfApWeb.ConnCase
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")

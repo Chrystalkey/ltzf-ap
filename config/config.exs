@@ -7,24 +7,24 @@
 # General application configuration
 import Config
 
-config :ltzf_admin,
-  ecto_repos: [LtzfAdmin.Repo],
+config :ltzf_ap,
+  ecto_repos: [LtzfAp.Repo],
   generators: [timestamp_type: :utc_datetime]
 
 # Guardian configuration
-config :ltzf_admin, LtzfAdmin.Guardian,
-  issuer: "ltzf_admin",
+config :ltzf_ap, LtzfAp.Guardian,
+  issuer: "ltzf_ap",
   secret_key: "your-secret-key-here-replace-in-production"
 
 # Configures the endpoint
-config :ltzf_admin, LtzfAdminWeb.Endpoint,
+config :ltzf_ap, LtzfApWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: LtzfAdminWeb.ErrorHTML, json: LtzfAdminWeb.ErrorJSON],
+    formats: [html: LtzfApWeb.ErrorHTML, json: LtzfApWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: LtzfAdmin.PubSub,
+  pubsub_server: LtzfAp.PubSub,
   live_view: [signing_salt: "5+MxxkgN"]
 
 # Configures Elixir's Logger

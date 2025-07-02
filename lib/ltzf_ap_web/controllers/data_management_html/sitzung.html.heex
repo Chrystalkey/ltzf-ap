@@ -1,0 +1,174 @@
+<div class="min-h-screen bg-gray-100">
+  <.admin_nav current_page="data_management" current_user={@current_user} />
+
+  <div class="py-10">
+    <header>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold leading-tight text-gray-900">Parliamentary Session</h1>
+            <p class="mt-2 text-sm text-gray-600">
+              <%= @sitzung["titel"] || "Session ##{@sitzung["nummer"]}" %>
+            </p>
+          </div>
+          <a href="/data_management/sitzungen" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to Sessions
+          </a>
+        </div>
+      </div>
+    </header>
+    <main>
+      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="px-4 py-8 sm:px-0">
+          <.flash_group flash={@flash} />
+
+          <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6">
+              <h3 class="text-lg leading-6 font-medium text-gray-900">Session Details</h3>
+            </div>
+            <div class="border-t border-gray-200">
+              <dl>
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Title</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @sitzung["titel"] || "N/A" %></dd>
+                </div>
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Number</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @sitzung["nummer"] %></dd>
+                </div>
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Date & Time</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    <%= if @sitzung["termin"] do %>
+                      <%= Calendar.strftime(DateTime.from_iso8601!(@sitzung["termin"]), "%Y-%m-%d %H:%M") %>
+                    <% else %>
+                      N/A
+                    <% end %>
+                  </dd>
+                </div>
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Committee</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    <%= if @sitzung["gremium"] do %>
+                      <%= @sitzung["gremium"]["name"] %> (<%= @sitzung["gremium"]["parlament"] %> - Electoral Period <%= @sitzung["gremium"]["wahlperiode"] %>)
+                    <% else %>
+                      N/A
+                    <% end %>
+                  </dd>
+                </div>
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Public</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= if @sitzung["public"], do: "Yes", else: "No" %></dd>
+                </div>
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">API ID</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-mono"><%= @sitzung["api_id"] %></dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Agenda Items (TOPs) -->
+          <%= if @sitzung["tops"] && length(@sitzung["tops"]) > 0 do %>
+            <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
+              <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Agenda Items (<%= length(@sitzung["tops"]) %>)</h3>
+              </div>
+              <div class="border-t border-gray-200">
+                <ul class="divide-y divide-gray-200">
+                  <%= for top <- @sitzung["tops"] do %>
+                    <li class="px-4 py-4">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">
+                            TOP <%= top["nummer"] %>: <%= top["titel"] %>
+                          </p>
+                          <%= if top["vorgang_id"] && length(top["vorgang_id"]) > 0 do %>
+                            <p class="text-sm text-gray-500">
+                              Related Processes: <%= length(top["vorgang_id"]) %>
+                            </p>
+                          <% end %>
+                        </div>
+                      </div>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Documents -->
+          <%= if @sitzung["dokumente"] && length(@sitzung["dokumente"]) > 0 do %>
+            <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
+              <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Documents (<%= length(@sitzung["dokumente"]) %>)</h3>
+              </div>
+              <div class="border-t border-gray-200">
+                <ul class="divide-y divide-gray-200">
+                  <%= for dokument <- @sitzung["dokumente"] do %>
+                    <li class="px-4 py-4">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">
+                            <%= dokument["titel"] %>
+                          </p>
+                          <p class="text-sm text-gray-500">
+                            Type: <%= dokument["typ"] %> | Modified: <%= if dokument["zp_modifiziert"] do %>
+                              <%= Calendar.strftime(DateTime.from_iso8601!(dokument["zp_modifiziert"]), "%Y-%m-%d") %>
+                            <% end %>
+                          </p>
+                        </div>
+                        <%= if dokument["api_id"] do %>
+                          <a href={"/data_management/dokument/#{dokument["api_id"]}"} class="text-indigo-600 hover:text-indigo-900">View</a>
+                        <% end %>
+                      </div>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Experts -->
+          <%= if @sitzung["experten"] && length(@sitzung["experten"]) > 0 do %>
+            <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
+              <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Experts (<%= length(@sitzung["experten"]) %>)</h3>
+              </div>
+              <div class="border-t border-gray-200">
+                <ul class="divide-y divide-gray-200">
+                  <%= for expert <- @sitzung["experten"] do %>
+                    <li class="px-4 py-4">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">
+                            <%= if expert["person"] do %>
+                              <%= expert["person"] %>
+                            <% else %>
+                              <%= expert["organisation"] %>
+                            <% end %>
+                          </p>
+                          <p class="text-sm text-gray-500">
+                            <%= if expert["organisation"] && expert["person"] do %>
+                              <%= expert["organisation"] %>
+                            <% end %>
+                            <%= if expert["fachgebiet"] do %>
+                              | <%= expert["fachgebiet"] %>
+                            <% end %>
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </main>
+  </div>
+</div> 

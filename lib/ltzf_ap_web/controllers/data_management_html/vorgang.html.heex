@@ -1,0 +1,138 @@
+<div class="min-h-screen bg-gray-100">
+  <.admin_nav current_page="data_management" current_user={@current_user} />
+
+  <div class="py-10">
+    <header>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold leading-tight text-gray-900">Legislative Process</h1>
+            <p class="mt-2 text-sm text-gray-600">
+              <%= @vorgang["titel"] %>
+            </p>
+          </div>
+          <a href="/data_management/vorgaenge" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to Processes
+          </a>
+        </div>
+      </div>
+    </header>
+    <main>
+      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="px-4 py-8 sm:px-0">
+          <.flash_group flash={@flash} />
+
+          <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6">
+              <h3 class="text-lg leading-6 font-medium text-gray-900">Process Details</h3>
+            </div>
+            <div class="border-t border-gray-200">
+              <dl>
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Title</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @vorgang["titel"] %></dd>
+                </div>
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Short Title</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @vorgang["kurztitel"] || "N/A" %></dd>
+                </div>
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Type</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @vorgang["typ"] %></dd>
+                </div>
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Electoral Period</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @vorgang["wahlperiode"] %></dd>
+                </div>
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">Constitutional Amendment</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= if @vorgang["verfassungsaendernd"], do: "Yes", else: "No" %></dd>
+                </div>
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt class="text-sm font-medium text-gray-500">API ID</dt>
+                  <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-mono"><%= @vorgang["api_id"] %></dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Initiators -->
+          <%= if @vorgang["initiatoren"] && length(@vorgang["initiatoren"]) > 0 do %>
+            <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
+              <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Initiators</h3>
+              </div>
+              <div class="border-t border-gray-200">
+                <ul class="divide-y divide-gray-200">
+                  <%= for initiator <- @vorgang["initiatoren"] do %>
+                    <li class="px-4 py-4">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">
+                            <%= if initiator["person"] do %>
+                              <%= initiator["person"] %>
+                            <% else %>
+                              <%= initiator["organisation"] %>
+                            <% end %>
+                          </p>
+                          <p class="text-sm text-gray-500">
+                            <%= if initiator["organisation"] && initiator["person"] do %>
+                              <%= initiator["organisation"] %>
+                            <% end %>
+                            <%= if initiator["fachgebiet"] do %>
+                              | <%= initiator["fachgebiet"] %>
+                            <% end %>
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Stations -->
+          <%= if @vorgang["stationen"] && length(@vorgang["stationen"]) > 0 do %>
+            <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
+              <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Stations (<%= length(@vorgang["stationen"]) %>)</h3>
+              </div>
+              <div class="border-t border-gray-200">
+                <ul class="divide-y divide-gray-200">
+                  <%= for station <- @vorgang["stationen"] do %>
+                    <li class="px-4 py-4">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">
+                            <%= station["titel"] || station["typ"] %>
+                          </p>
+                          <p class="text-sm text-gray-500">
+                            <%= station["typ"] %> | <%= if station["gremium"] do %>
+                              <%= station["gremium"]["name"] %> (<%= station["gremium"]["parlament"] %>)
+                            <% end %>
+                          </p>
+                          <p class="text-sm text-gray-500">
+                            <%= if station["zp_start"] do %>
+                              Started: <%= Calendar.strftime(DateTime.from_iso8601!(station["zp_start"]), "%Y-%m-%d") %>
+                            <% end %>
+                            <%= if station["zp_modifiziert"] do %>
+                              | Modified: <%= Calendar.strftime(DateTime.from_iso8601!(station["zp_modifiziert"]), "%Y-%m-%d") %>
+                            <% end %>
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </main>
+  </div>
+</div> 

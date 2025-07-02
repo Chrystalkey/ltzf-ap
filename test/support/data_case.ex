@@ -1,4 +1,4 @@
-defmodule LtzfAdmin.DataCase do
+defmodule LtzfAp.DataCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
@@ -10,7 +10,7 @@ defmodule LtzfAdmin.DataCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use LtzfAdmin.DataCase, async: true`, although
+  by setting `use LtzfAp.DataCase, async: true`, although
   this option is not recommended for other databases.
   """
 
@@ -18,17 +18,17 @@ defmodule LtzfAdmin.DataCase do
 
   using do
     quote do
-      alias LtzfAdmin.Repo
+      alias LtzfAp.Repo
 
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import LtzfAdmin.DataCase
+      import LtzfAp.DataCase
     end
   end
 
   setup tags do
-    LtzfAdmin.DataCase.setup_sandbox(tags)
+    LtzfAp.DataCase.setup_sandbox(tags)
     :ok
   end
 
@@ -36,7 +36,7 @@ defmodule LtzfAdmin.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(LtzfAdmin.Repo, shared: not tags[:async])
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(LtzfAp.Repo, shared: not tags[:async])
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 
