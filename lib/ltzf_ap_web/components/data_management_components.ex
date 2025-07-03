@@ -97,7 +97,7 @@ defmodule LtzfApWeb.DataManagementComponents do
 
   def generic_list_page(assigns) do
     assigns = assign(assigns, :page_id, "#{assigns.entity_type}-page")
-    assigns = assign(assigns, :api_endpoint, "/api/v1/#{assigns.entity_type}")
+    assigns = assign(assigns, :api_endpoint, "/api/proxy/#{assigns.entity_type}")
     assigns = assign(assigns, :loading_text, "Loading #{assigns.render_config.loading_text}...")
     assigns = assign(assigns, :empty_text, assigns.render_config.empty_text)
     assigns = assign(assigns, :render_item, assigns.render_config.render_item)
@@ -117,30 +117,6 @@ defmodule LtzfApWeb.DataManagementComponents do
       empty_text={@empty_text}
       render_item={@render_item}
     />
-
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      new DataManagementPage({
-        pageId: '<%= @page_id %>',
-        apiEndpoint: '<%= @api_endpoint %>',
-        emptyText: '<%= @empty_text %>',
-        renderItem: <%= raw(@render_config.render_item_js) %>
-      });
-
-      // Use shared edit function generator to eliminate duplication
-      // Make sure createEditFunction is available before using it
-      if (typeof createEditFunction === 'function') {
-        window.edit<%= String.capitalize(@entity_type) %> = createEditFunction('<%= @entity_type %>');
-      } else {
-        console.error('createEditFunction is not available');
-        // Fallback edit function
-        window.edit<%= String.capitalize(@entity_type) %> = function(id, item) {
-          console.log('Fallback edit function for <%= @entity_type %>:', id, item);
-          alert('Edit functionality not yet implemented');
-        };
-      }
-    });
-    </script>
     """
   end
 
@@ -222,7 +198,7 @@ defmodule LtzfApWeb.DataManagementComponents do
               <div class={"#{if rem(index, 2) == 0, do: "bg-gray-50", else: "bg-white"} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"}>
                 <dt class="text-sm font-medium text-gray-500"><%= field.label %></dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  <%= render_field_value(@entity, field) %>
+                  <%= render_field_value(field, @entity) %>
                 </dd>
               </div>
             <% end %>
@@ -232,17 +208,759 @@ defmodule LtzfApWeb.DataManagementComponents do
           <ul class="divide-y divide-gray-200">
             <%= for item <- @items do %>
               <li class="px-4 py-4">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <%= render_item_content(item, @entity) %>
-                  </div>
-                </div>
+                <%= render_item_content(item, @entity) %>
               </li>
             <% end %>
           </ul>
         <% end %>
       </div>
     </div>
+    """
+  end
+
+  @doc """
+  Renders the vorgang detail page with editing capabilities.
+  """
+  attr :vorgang, :map, required: true
+  attr :current_user, :map, required: true
+  attr :flash, :map, required: true
+
+  def vorgang_detail_page(assigns) do
+    ~H"""
+    <div class="min-h-screen bg-gray-100">
+      <.admin_nav current_page="data_management" current_user={@current_user} />
+
+      <div class="py-10">
+        <header>
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-3xl font-bold leading-tight text-gray-900 m-0">Vorgang Details</h1>
+                <p class="mt-2 text-sm text-gray-600">
+                  <%= @vorgang["titel"] %>
+                </p>
+              </div>
+              <div class="flex space-x-3">
+                <button type="submit" form="vorgang-form" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Save Changes
+                </button>
+                <button type="button" onclick="undoChanges()" id="undo-btn" disabled class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                  </svg>
+                  Undo
+                </button>
+                <button type="button" onclick="resetToBackend()" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  Reset
+                </button>
+                <a href="/data_management/vorgaenge" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  Cancel
+                </a>
+                <button onclick="confirmDelete()" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                  <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main>
+          <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="px-4 py-8 sm:px-0">
+              <.flash_group flash={@flash} />
+
+              <form id="vorgang-form" phx-submit="update_vorgang" method="post" action={"/data_management/vorgang/#{@vorgang["api_id"]}"}>
+                <input type="hidden" name="_method" value="put" />
+
+                <!-- Two Column Layout -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+
+                  <!-- Left Column - Core Information -->
+                  <div class="space-y-6">
+                    <!-- Basic Details -->
+                    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                      <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Basic Details</h3>
+                      </div>
+                      <div class="border-t border-gray-200">
+                        <dl class="divide-y divide-gray-200">
+                          <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">API ID</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-mono"><%= @vorgang["api_id"] %></dd>
+                          </div>
+                          <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Titel *</dt>
+                            <dd class="mt-1 sm:mt-0 sm:col-span-2">
+                              <input type="text" name="vorgang[titel]" value={@vorgang["titel"]} required class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            </dd>
+                          </div>
+                          <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Kurztitel</dt>
+                            <dd class="mt-1 sm:mt-0 sm:col-span-2">
+                              <input type="text" name="vorgang[kurztitel]" value={@vorgang["kurztitel"]} class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            </dd>
+                          </div>
+                          <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Typ *</dt>
+                            <dd class="mt-1 sm:mt-0 sm:col-span-2">
+                              <select name="vorgang[typ]" required class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                <option value="gg-einspruch" selected={@vorgang["typ"] == "gg-einspruch"}>Bundesgesetz Einspruch</option>
+                                <option value="gg-zustimmung" selected={@vorgang["typ"] == "gg-zustimmung"}>Bundesgesetz Zustimmungspflicht</option>
+                                <option value="gg-land-parl" selected={@vorgang["typ"] == "gg-land-parl"}>Landesgesetz, normal</option>
+                                <option value="gg-land-volk" selected={@vorgang["typ"] == "gg-land-volk"}>Landesgesetz, Volksgesetzgebung</option>
+                                <option value="bw-einsatz" selected={@vorgang["typ"] == "bw-einsatz"}>Bundeswehreinsatz</option>
+                                <option value="sonstig" selected={@vorgang["typ"] == "sonstig"}>Sonstig</option>
+                              </select>
+                            </dd>
+                          </div>
+                          <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Wahlperiode *</dt>
+                            <dd class="mt-1 sm:mt-0 sm:col-span-2">
+                              <input type="number" name="vorgang[wahlperiode]" value={@vorgang["wahlperiode"]} min="0" required class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            </dd>
+                          </div>
+                          <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Verfassungsändernd</dt>
+                            <dd class="mt-1 sm:mt-0 sm:col-span-2">
+                              <input type="checkbox" name="vorgang[verfassungsaendernd]" value="true" checked={@vorgang["verfassungsaendernd"]} class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
+
+                    <!-- Identifiers -->
+                    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                      <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Identifiers</h3>
+                      </div>
+                      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                        <div id="ids-container">
+                          <%= for {id, index} <- Enum.with_index(@vorgang["ids"] || []) do %>
+                            <div class="flex space-x-2 mb-2">
+                              <input type="text" name="vorgang[ids][][id]" value={id["id"]} placeholder="ID" class="flex-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded-md" />
+                              <select name="vorgang[ids][][typ]" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded-md">
+                                <option value="initdrucks" selected={id["typ"] == "initdrucks"}>Initiativdrucksache</option>
+                                <option value="vorgnr" selected={id["typ"] == "vorgnr"}>Vorgangsnummer</option>
+                                <option value="api-id" selected={id["typ"] == "api-id"}>API ID</option>
+                                <option value="sonstig" selected={id["typ"] == "sonstig"}>Sonstig</option>
+                              </select>
+                              <button type="button" onclick="removeId(this)" class="inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                              </button>
+                            </div>
+                          <% end %>
+                        </div>
+                        <button type="button" onclick="addId()" class="mt-2 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                          <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                          </svg>
+                          Add Identifier
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Links -->
+                    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                      <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Links</h3>
+                      </div>
+                      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                        <div id="links-container">
+                          <%= for link <- @vorgang["links"] || [] do %>
+                            <div class="flex space-x-2 mb-2">
+                              <input type="url" name="vorgang[links][]" value={link} placeholder="URL" class="flex-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded-md" />
+                              <button type="button" onclick="removeLink(this)" class="inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                              </button>
+                            </div>
+                          <% end %>
+                        </div>
+                        <button type="button" onclick="addLink()" class="mt-2 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                          <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                          </svg>
+                          Add Link
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right Column - Participants & Metadata -->
+                  <div class="space-y-6">
+                    <!-- Initiators -->
+                    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                      <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Initiators</h3>
+                      </div>
+                      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                        <div id="initiators-container">
+                          <%= for {initiator, index} <- Enum.with_index(@vorgang["initiatoren"] || []) do %>
+                            <div class="border rounded-lg p-4 mb-4">
+                              <div class="grid grid-cols-1 gap-4">
+                                <div>
+                                  <label class="block text-sm font-medium text-gray-700">Person</label>
+                                  <input type="text" name="vorgang[initiatoren][][person]" value={initiator["person"]} class="mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                                </div>
+                                <div>
+                                  <label class="block text-sm font-medium text-gray-700">Organisation *</label>
+                                  <input type="text" name="vorgang[initiatoren][][organisation]" value={initiator["organisation"]} required class="mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                                </div>
+                                <div>
+                                  <label class="block text-sm font-medium text-gray-700">Fachgebiet</label>
+                                  <input type="text" name="vorgang[initiatoren][][fachgebiet]" value={initiator["fachgebiet"]} class="mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                                </div>
+                              </div>
+                              <button type="button" onclick="removeInitiator(this)" class="mt-2 inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                Remove
+                              </button>
+                            </div>
+                          <% end %>
+                        </div>
+                        <button type="button" onclick="addInitiator()" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                          <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                          </svg>
+                          Add Initiator
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- System Information -->
+                    <%= if @vorgang["touched_by"] do %>
+                      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                        <div class="px-4 py-5 sm:px-6">
+                          <h3 class="text-lg leading-6 font-medium text-gray-900">System Information</h3>
+                        </div>
+                        <div class="border-t border-gray-200">
+                          <dl class="divide-y divide-gray-200">
+                            <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                              <dt class="text-sm font-medium text-gray-500">Touched By</dt>
+                              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                <%= for touch <- @vorgang["touched_by"] do %>
+                                  <div class="mb-1">
+                                    <span class="font-mono text-xs"><%= touch["scraper_id"] %></span>
+                                    <span class="text-gray-500">(<%= touch["key"] %>)</span>
+                                  </div>
+                                <% end %>
+                              </dd>
+                            </div>
+                          </dl>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+
+                <!-- Stations Section -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+                  <div class="px-4 py-5 sm:px-6">
+                    <div class="flex items-center justify-between">
+                      <h3 class="text-lg leading-6 font-medium text-gray-900">Stations (<%= length(@vorgang["stationen"] || []) %>)</h3>
+                      <button type="button" onclick="toggleAllStations()" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Expand All
+                      </button>
+                    </div>
+                  </div>
+                  <div class="border-t border-gray-200">
+                    <div id="stations-container">
+                      <%= for {station, index} <- Enum.with_index(@vorgang["stationen"] || []) do %>
+                        <div class="station-item border-b border-gray-200">
+                          <!-- Collapsed Station Header -->
+                          <div class="px-4 py-4 cursor-pointer" onclick="toggleStation(this)">
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center space-x-3">
+                                <svg class="station-toggle h-5 w-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                                <div>
+                                  <p class="text-sm font-medium text-gray-900">
+                                    <%= station["titel"] || station["typ"] %>
+                                  </p>
+                                  <p class="text-sm text-gray-500">
+                                    <%= if station["zp_start"] do %>
+                                      <%= safe_format_date(station["zp_start"]) %>
+                                    <% end %>
+                                    | <%= station["typ"] %> | <%= station["parlament"] %>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Expanded Station Content -->
+                          <div class="station-content hidden px-4 py-4 bg-gray-50">
+                            <!-- Station form fields would go here -->
+                            <p class="text-sm text-gray-500">Station editing interface will be implemented here</p>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script>
+    function confirmDelete() {
+      if (confirm('Are you sure you want to delete this vorgang? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/data_management/vorgang/<%= @vorgang["api_id"] %>';
+
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'delete';
+
+        form.appendChild(methodInput);
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+
+    function addId() {
+      const container = document.getElementById('ids-container');
+      const div = document.createElement('div');
+      div.className = 'flex space-x-2 mb-2';
+      div.innerHTML = `
+        <input type="text" name="vorgang[ids][][id]" placeholder="ID" class="flex-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded-md" />
+        <select name="vorgang[ids][][typ]" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded-md">
+          <option value="initdrucks">Initiativdrucksache</option>
+          <option value="vorgnr">Vorgangsnummer</option>
+          <option value="api-id">API ID</option>
+          <option value="sonstig">Sonstig</option>
+        </select>
+        <button type="button" onclick="removeId(this)" class="inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      `;
+      container.appendChild(div);
+
+      // Track the add action
+      const action = {
+        id: ++actionId,
+        type: 'add_item',
+        itemType: 'identifier',
+        element: div,
+        container: container
+      };
+      addToUndoStack(action);
+    }
+
+    function removeId(button) {
+      const element = button.parentElement;
+      const container = element.parentElement;
+
+      // Track the remove action before removing
+      const action = {
+        id: ++actionId,
+        type: 'remove_item',
+        itemType: 'identifier',
+        element: element,
+        container: container
+      };
+      addToUndoStack(action);
+
+      element.remove();
+    }
+
+    function addLink() {
+      const container = document.getElementById('links-container');
+      const div = document.createElement('div');
+      div.className = 'flex space-x-2 mb-2';
+      div.innerHTML = `
+        <input type="url" name="vorgang[links][]" placeholder="URL" class="flex-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded-md" />
+        <button type="button" onclick="removeLink(this)" class="inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      `;
+      container.appendChild(div);
+
+      // Track the add action
+      const action = {
+        id: ++actionId,
+        type: 'add_item',
+        itemType: 'link',
+        element: div,
+        container: container
+      };
+      addToUndoStack(action);
+    }
+
+    function removeLink(button) {
+      const element = button.parentElement;
+      const container = element.parentElement;
+
+      // Track the remove action before removing
+      const action = {
+        id: ++actionId,
+        type: 'remove_item',
+        itemType: 'link',
+        element: element,
+        container: container
+      };
+      addToUndoStack(action);
+
+      element.remove();
+    }
+
+    function addInitiator() {
+      const container = document.getElementById('initiators-container');
+      const div = document.createElement('div');
+      div.className = 'border rounded-lg p-4 mb-4';
+      div.innerHTML = `
+        <div class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Person</label>
+            <input type="text" name="vorgang[initiatoren][][person]" class="mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Organisation *</label>
+            <input type="text" name="vorgang[initiatoren][][organisation]" required class="mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Fachgebiet</label>
+            <input type="text" name="vorgang[initiatoren][][fachgebiet]" class="mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+          </div>
+        </div>
+        <button type="button" onclick="removeInitiator(this)" class="mt-2 inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+          Remove
+        </button>
+      `;
+      container.appendChild(div);
+
+      // Track the add action
+      const action = {
+        id: ++actionId,
+        type: 'add_item',
+        itemType: 'initiator',
+        element: div,
+        container: container
+      };
+      addToUndoStack(action);
+    }
+
+    function removeInitiator(button) {
+      const element = button.parentElement;
+      const container = element.parentElement;
+
+      // Track the remove action before removing
+      const action = {
+        id: ++actionId,
+        type: 'remove_item',
+        itemType: 'initiator',
+        element: element,
+        container: container
+      };
+      addToUndoStack(action);
+
+      element.remove();
+    }
+
+    function toggleStation(header) {
+      const content = header.nextElementSibling;
+      const toggle = header.querySelector('.station-toggle');
+
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        toggle.classList.add('rotate-90');
+      } else {
+        content.classList.add('hidden');
+        toggle.classList.remove('rotate-90');
+      }
+    }
+
+    function toggleAllStations() {
+      const button = event.target;
+      const stations = document.querySelectorAll('.station-content');
+      const toggles = document.querySelectorAll('.station-toggle');
+
+      if (button.textContent.includes('Expand')) {
+        stations.forEach(station => station.classList.remove('hidden'));
+        toggles.forEach(toggle => toggle.classList.add('rotate-90'));
+        button.textContent = 'Collapse All';
+      } else {
+        stations.forEach(station => station.classList.add('hidden'));
+        toggles.forEach(toggle => toggle.classList.remove('rotate-90'));
+        button.textContent = 'Expand All';
+      }
+    }
+
+        // Undo and Reset functionality
+    let undoStack = [];
+    let actionId = 0;
+
+        // Initialize form tracking
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize existing form inputs with their current values
+      const formInputs = document.querySelectorAll('input, select, textarea');
+      formInputs.forEach(input => {
+        // Store the initial value in dataset
+        if (input.type === 'checkbox') {
+          input.dataset.lastValue = input.checked.toString();
+        } else {
+          input.dataset.lastValue = input.value;
+        }
+
+        input.addEventListener('change', handleFieldChange);
+        input.addEventListener('input', handleFieldInput);
+      });
+
+      // Add event listeners for dynamic content
+      setupDynamicContentListeners();
+    });
+
+    function setupDynamicContentListeners() {
+      // Monitor for new elements being added (for dynamic arrays)
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) { // Element node
+              const inputs = node.querySelectorAll ? node.querySelectorAll('input, select, textarea') : [];
+              inputs.forEach(input => {
+                input.addEventListener('change', handleFieldChange);
+                input.addEventListener('input', handleFieldInput);
+              });
+            }
+          });
+        });
+      });
+
+      observer.observe(document.getElementById('vorgang-form'), {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    function handleFieldChange(event) {
+      const action = createFieldEditAction(event.target);
+      if (action) {
+        addToUndoStack(action);
+      }
+    }
+
+    function handleFieldInput(event) {
+      // Debounce input events to avoid too many actions
+      clearTimeout(event.target.inputTimeout);
+      event.target.inputTimeout = setTimeout(() => {
+        const action = createFieldEditAction(event.target);
+        if (action) {
+          addToUndoStack(action);
+        }
+      }, 500);
+    }
+
+    function createFieldEditAction(element) {
+      const name = element.name;
+      const oldValue = element.dataset.lastValue || '';
+      const newValue = element.type === 'checkbox' ? element.checked.toString() : element.value;
+
+      // Skip if no actual change
+      if (oldValue === newValue) {
+        return null;
+      }
+
+      // Store current value for next comparison
+      element.dataset.lastValue = newValue;
+
+      return {
+        id: ++actionId,
+        type: 'field_edit',
+        field: name,
+        oldValue: oldValue,
+        newValue: newValue,
+        element: element
+      };
+    }
+
+    function addToUndoStack(action) {
+      undoStack.push(action);
+
+      // Limit stack to last 20 actions
+      if (undoStack.length > 20) {
+        undoStack.shift();
+      }
+
+      updateUndoButton();
+    }
+
+    function updateUndoButton() {
+      const undoBtn = document.getElementById('undo-btn');
+      if (undoStack.length > 0) {
+        undoBtn.disabled = false;
+        undoBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        undoBtn.title = `Undo last action (${undoStack.length} actions available)`;
+      } else {
+        undoBtn.disabled = true;
+        undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        undoBtn.title = 'No actions to undo';
+      }
+    }
+
+    function undoChanges() {
+      if (undoStack.length === 0) {
+        alert('No actions to undo');
+        return;
+      }
+
+      const lastAction = undoStack.pop();
+      undoAction(lastAction);
+      updateUndoButton();
+
+      // Show feedback
+      showNotification(`Undid: ${getActionDescription(lastAction)}`, 'success');
+    }
+
+    function undoAction(action) {
+      switch (action.type) {
+        case 'field_edit':
+          undoFieldEdit(action);
+          break;
+        case 'add_item':
+          undoAddItem(action);
+          break;
+        case 'remove_item':
+          undoRemoveItem(action);
+          break;
+        default:
+          console.warn('Unknown action type:', action.type);
+      }
+    }
+
+    function undoFieldEdit(action) {
+      const element = action.element;
+      if (element && element.parentNode) {
+        if (element.type === 'checkbox') {
+          element.checked = action.oldValue === 'true';
+        } else {
+          element.value = action.oldValue;
+        }
+        element.dataset.lastValue = action.oldValue;
+      }
+    }
+
+    function undoAddItem(action) {
+      if (action.element && action.element.parentNode) {
+        action.element.remove();
+      }
+    }
+
+    function undoRemoveItem(action) {
+      if (action.container && action.element) {
+        action.container.appendChild(action.element);
+      }
+    }
+
+    function getActionDescription(action) {
+      switch (action.type) {
+        case 'field_edit':
+          return `Edited ${action.field}`;
+        case 'add_item':
+          return `Added ${action.itemType}`;
+        case 'remove_item':
+          return `Removed ${action.itemType}`;
+        default:
+          return 'Action';
+      }
+    }
+
+        function resetToBackend() {
+      if (confirm('Are you sure you want to reset all changes? This will discard all unsaved changes.')) {
+        // Simply reload the page to get fresh data from the backend
+        window.location.reload();
+      }
+    }
+
+    function restoreFormData(data) {
+      const form = document.getElementById('vorgang-form');
+
+      // Clear existing form data
+      const inputs = form.querySelectorAll('input, select, textarea');
+      inputs.forEach(input => {
+        if (input.type === 'checkbox') {
+          input.checked = false;
+        } else {
+          input.value = '';
+        }
+      });
+
+      // Restore data
+      Object.keys(data).forEach(key => {
+        const value = data[key];
+        const elements = form.querySelectorAll(`[name="${key}"]`);
+
+        if (Array.isArray(value)) {
+          // Handle array values (like ids, links, initiators)
+          value.forEach((item, index) => {
+            if (typeof item === 'object') {
+              // Handle object arrays (like ids with id and typ)
+              Object.keys(item).forEach(subKey => {
+                const subElements = form.querySelectorAll(`[name="${key}[${index}][${subKey}]"]`);
+                if (subElements[index]) {
+                  subElements[index].value = item[subKey];
+                }
+              });
+            } else {
+              // Handle simple arrays (like links)
+              const elements = form.querySelectorAll(`[name="${key}[]"]`);
+              if (elements[index]) {
+                elements[index].value = item;
+              }
+            }
+          });
+        } else {
+          // Handle single values
+          elements.forEach(element => {
+            if (element.type === 'checkbox') {
+              element.checked = value === 'true';
+            } else {
+              element.value = value;
+            }
+          });
+        }
+      });
+    }
+
+    function showNotification(message, type = 'info') {
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-md shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+      }`;
+      notification.textContent = message;
+
+      document.body.appendChild(notification);
+
+      // Remove after 3 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+    </script>
     """
   end
 
@@ -332,7 +1050,7 @@ defmodule LtzfApWeb.DataManagementComponents do
   end
 
   # Helper functions for rendering field values and item content
-  defp render_field_value(entity, field) do
+  defp render_field_value(field, entity) do
     # Convert atom key to string key for JSON data
     key = if is_atom(field.key), do: Atom.to_string(field.key), else: field.key
     value = Map.get(entity, key)
@@ -414,13 +1132,13 @@ defmodule LtzfApWeb.DataManagementComponents do
   """
   def process_type_options do
     [
-      %{value: "", label: "All Types"},
+      %{value: "", label: "Alle Typen"},
       %{value: "gg-einspruch", label: "Bundesgesetz Einspruch"},
       %{value: "gg-zustimmung", label: "Bundesgesetz Zustimmungspflicht"},
       %{value: "gg-land-parl", label: "Landesgesetz, normal"},
       %{value: "gg-land-volk", label: "Landesgesetz, Volksgesetzgebung"},
       %{value: "bw-einsatz", label: "Bundeswehreinsatz"},
-      %{value: "sonstig", label: "Other"}
+      %{value: "sonstig", label: "Sonstige"}
     ]
   end
 
@@ -432,35 +1150,35 @@ defmodule LtzfApWeb.DataManagementComponents do
       %{
         id: "parlament",
         name: "p",
-        label: "Parliament",
+        label: "Parlament",
         type: "select",
         options: parliament_options()
       },
       %{
         id: "wahlperiode",
         name: "wp",
-        label: "Electoral Period",
+        label: "Wahlperiode",
         type: "number",
         min: 0,
-        placeholder: "e.g., 20"
+        placeholder: "z.B. 20"
       },
       %{
         id: "vgtyp",
         name: "vgtyp",
-        label: "Process Type",
+        label: "Vorgangstyp",
         type: "select",
         options: process_type_options()
       },
       %{
         id: "updated-since",
         name: "since",
-        label: "Updated Since",
+        label: "Aktualisiert seit",
         type: "datetime-local"
       },
       %{
         id: "updated-until",
         name: "until",
-        label: "Updated Until",
+        label: "Aktualisiert bis",
         type: "datetime-local"
       }
     ]
@@ -472,113 +1190,23 @@ defmodule LtzfApWeb.DataManagementComponents do
   def render_configs do
     %{
       "vorgang" => %{
-        loading_text: "legislative processes",
-        empty_text: "No legislative processes found",
+        loading_text: "Gesetzgebungsverfahren",
+        empty_text: "Keine Gesetzgebungsverfahren gefunden",
         render_item: "vorgang",
-        render_item_js: """
-        function(item) {
-          return `
-            <li class="px-6 py-4">
-              <div class="flex items-center justify-between">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between">
-                    <p class="text-sm font-medium text-indigo-600 truncate">
-                      <a href="/data_management/vorgaenge/\${item.id}" class="hover:underline">
-                        \${item.titel || 'Untitled Process'}
-                      </a>
-                    </p>
-                    <div class="ml-2 flex-shrink-0 flex">
-                      <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        \${item.parlament || 'Unknown'}
-                      </p>
-                    </div>
-                  </div>
-                  <div class="mt-2 flex">
-                    <div class="flex items-center text-sm text-gray-500">
-                      <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                      </svg>
-                      \${item.erstellt_am ? new Date(item.erstellt_am).toLocaleDateString('de-DE') : 'Unknown date'}
-                    </div>
-                  </div>
-                  <div class="mt-2 flex">
-                    <div class="flex items-center text-sm text-gray-500">
-                      <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                      </svg>
-                      \${item.vgtyp || 'Unknown type'}
-                    </div>
-                  </div>
-                </div>
-                <div class="ml-4 flex-shrink-0 flex space-x-2">
-                  <button onclick="editVorgang('\${item.id}', \${JSON.stringify(item).replace(/"/g, '\\"')})" class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                    Edit
-                  </button>
-                </div>
-              </div>
-            </li>
-          `;
-        }
-        """
+        api_endpoint: "/api/proxy/vorgang"
       },
       "sitzung" => %{
-        loading_text: "parliamentary sessions",
-        empty_text: "No parliamentary sessions found",
+        loading_text: "Parlamentssitzungen",
+        empty_text: "Keine Sitzungen gefunden",
         render_item: "sitzung",
-        render_item_js: """
-        function(item) {
-          return `
-            <li class="px-6 py-4">
-              <div class="flex items-center justify-between">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between">
-                    <p class="text-sm font-medium text-indigo-600 truncate">
-                      <a href="/data_management/sitzungen/\${item.id}" class="hover:underline">
-                        \${item.titel || 'Untitled Session'}
-                      </a>
-                    </p>
-                    <div class="ml-2 flex-shrink-0 flex">
-                      <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        \${item.parlament || 'Unknown'}
-                      </p>
-                    </div>
-                  </div>
-                  <div class="mt-2 flex">
-                    <div class="flex items-center text-sm text-gray-500">
-                      <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                      </svg>
-                      \${item.datum ? new Date(item.datum).toLocaleDateString('de-DE') : 'Unknown date'}
-                    </div>
-                  </div>
-                  <div class="mt-2 flex">
-                    <div class="flex items-center text-sm text-gray-500">
-                      <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                      </svg>
-                      \${item.vgtyp || 'Unknown type'}
-                    </div>
-                  </div>
-                </div>
-                <div class="ml-4 flex-shrink-0 flex space-x-2">
-                  <button onclick="editSitzung('\${item.id}', \${JSON.stringify(item).replace(/"/g, '\\"')})" class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                    Edit
-                  </button>
-                </div>
-              </div>
-            </li>
-          `;
-        }
-        """
+        api_endpoint: "/api/proxy/sitzung"
       },
-
-
+      "dokument" => %{
+        loading_text: "Dokumente",
+        empty_text: "Keine Dokumente gefunden",
+        render_item: "dokument",
+        api_endpoint: "/api/proxy/dokument"
+      }
     }
   end
 
@@ -588,22 +1216,22 @@ defmodule LtzfApWeb.DataManagementComponents do
   def entity_filters do
     %{
       "vorgang" => [
-        %{id: "parlament", name: "p", label: "Parliament", type: "select", options: parliament_options()},
-        %{id: "wahlperiode", name: "wp", label: "Electoral Period", type: "number", min: 0, placeholder: "e.g., 20"},
-        %{id: "vgtyp", name: "vgtyp", label: "Process Type", type: "select", options: process_type_options()},
-        %{id: "updated-since", name: "since", label: "Updated Since", type: "datetime-local"},
-        %{id: "updated-until", name: "until", label: "Updated Until", type: "datetime-local"},
-        %{id: "person", name: "person", label: "Author Name Contains", type: "text", placeholder: "e.g., Schmidt"},
-        %{id: "fach", name: "fach", label: "Author Professional Field", type: "text", placeholder: "e.g., Verfassungsrecht"},
-        %{id: "org", name: "org", label: "Author Organization", type: "text", placeholder: "e.g., SPD"}
+        %{id: "parlament", name: "p", label: "Parlament", type: "select", options: parliament_options()},
+        %{id: "wahlperiode", name: "wp", label: "Wahlperiode", type: "number", min: 0, placeholder: "z.B. 20"},
+        %{id: "vgtyp", name: "vgtyp", label: "Vorgangstyp", type: "select", options: process_type_options()},
+        %{id: "updated-since", name: "since", label: "Aktualisiert seit", type: "datetime-local"},
+        %{id: "updated-until", name: "until", label: "Aktualisiert bis", type: "datetime-local"},
+        %{id: "person", name: "person", label: "Initiator:innen-Name enthält", type: "text", placeholder: "z.B. Schmidt"},
+        %{id: "fach", name: "fach", label: "Initiator:innen-Fachgebiet", type: "text", placeholder: "z.B. Verfassungsrecht"},
+        %{id: "org", name: "org", label: "Initiator:innen-Organisation", type: "text", placeholder: "z.B. SPD"}
       ],
       "sitzung" => [
-        %{id: "parlament", name: "p", label: "Parliament", type: "select", options: parliament_options()},
-        %{id: "wahlperiode", name: "wp", label: "Electoral Period", type: "number", min: 0, placeholder: "e.g., 20"},
-        %{id: "vgtyp", name: "vgtyp", label: "Process Type", type: "select", options: process_type_options()},
-        %{id: "updated-since", name: "since", label: "Updated Since", type: "datetime-local"},
-        %{id: "updated-until", name: "until", label: "Updated Until", type: "datetime-local"},
-        %{id: "vgid", name: "vgid", label: "Associated Process ID", type: "text", placeholder: "UUID"}
+        %{id: "parlament", name: "p", label: "Parlament", type: "select", options: parliament_options()},
+        %{id: "wahlperiode", name: "wp", label: "Wahlperiode", type: "number", min: 0, placeholder: "z.B. 20"},
+        %{id: "vgtyp", name: "vgtyp", label: "Vorgangstyp", type: "select", options: process_type_options()},
+        %{id: "updated-since", name: "since", label: "Aktualisiert seit", type: "datetime-local"},
+        %{id: "updated-until", name: "until", label: "Aktualisiert bis", type: "datetime-local"},
+        %{id: "vgid", name: "vgid", label: "Zugehörige Vorgangs-ID", type: "text", placeholder: "UUID"}
       ],
 
     }

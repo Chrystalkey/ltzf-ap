@@ -23,6 +23,17 @@ function createEditFunction(entityType) {
 class DataManagementPage {
   constructor(config) {
     this.config = config;
+    
+    // Ensure renderItem is a function
+    if (typeof this.config.renderItem !== 'function') {
+      this.config.renderItem = function(item) {
+        return `<li class="px-6 py-4 border-b border-gray-100">
+          <div class="text-red-600">Error: renderItem is not a function</div>
+          <pre>${JSON.stringify(item, null, 2)}</pre>
+        </li>`;
+      };
+    }
+    
     this.currentPage = 1;
     this.totalPages = 1;
     this.currentFilters = {};
@@ -137,15 +148,18 @@ class DataManagementPage {
       return;
     }
 
-    const params = { ...filters, page: page, per_page: 20 };
+    const params = { ...filters, page: page, per_page: 10 };
     const queryString = this.buildQueryString(params);
+    const url = `${this.config.apiEndpoint}?${queryString}`;
     
     try {
-      const response = await fetch(`${backendUrl}${this.config.apiEndpoint}?${queryString}`, {
+      const response = await fetch(url, {
         headers: { 'X-API-Key': apiKey }
       });
-
-      if (!response.ok) throw new Error('Network response was not ok');
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
       
       // Capture pagination headers before parsing JSON (case-insensitive)
       const totalCount = response.headers.get('x-total-count') || response.headers.get('X-Total-Count');
@@ -156,9 +170,10 @@ class DataManagementPage {
       resultsList.innerHTML = '';
       
       if (data && data.length > 0) {
-        data.forEach(item => {
+        data.forEach((item, index) => {
           const li = document.createElement('li');
-          li.innerHTML = this.config.renderItem(item);
+          const renderedHtml = this.config.renderItem(item);
+          li.innerHTML = renderedHtml;
           resultsList.appendChild(li);
         });
         
@@ -194,7 +209,6 @@ class DataManagementPage {
         this.showEmpty();
       }
     } catch (error) {
-      console.error('Error loading data:', error);
       this.showEmpty();
     }
   }
@@ -223,6 +237,17 @@ class DataManagementPage {
 // Export for use in other modules
 window.DataManagementPage = DataManagementPage;
 window.createEditFunction = createEditFunction;
+
+// Global edit functions for data management pages
+window.editVorgang = function(id) {
+  // TODO: Implement proper edit functionality
+  alert('Bearbeiten-Funktionalität noch nicht implementiert');
+};
+
+window.editSitzung = function(id) {
+  // TODO: Implement proper edit functionality
+  alert('Bearbeiten-Funktionalität noch nicht implementiert');
+};
 
 // Flash message auto-dismiss functionality
 function setupFlashMessages() {

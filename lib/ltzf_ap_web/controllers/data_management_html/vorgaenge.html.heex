@@ -1,15 +1,15 @@
 <.data_management_page
-  title="Legislative Processes"
-  description="View and manage legislative processes from the LTZF backend"
+  title="Gesetzgebungsverfahren"
+  description="Gesetzgebungsverfahren aus dem LTZF-Backend anzeigen und verwalten"
   filters={[
-    %{id: "parlament", name: "p", label: "Parliament", type: "select", options: @parliament_options},
-    %{id: "wahlperiode", name: "wp", label: "Electoral Period", type: "number", min: 0, placeholder: "e.g., 20"},
-    %{id: "vgtyp", name: "vgtyp", label: "Process Type", type: "select", options: @process_type_options},
-    %{id: "updated-since", name: "since", label: "Updated Since", type: "datetime-local"},
-    %{id: "updated-until", name: "until", label: "Updated Until", type: "datetime-local"},
-    %{id: "person", name: "person", label: "Author Name Contains", type: "text", placeholder: "e.g., Schmidt"},
-    %{id: "fach", name: "fach", label: "Author Professional Field", type: "text", placeholder: "e.g., Verfassungsrecht"},
-    %{id: "org", name: "org", label: "Author Organization", type: "text", placeholder: "e.g., SPD"}
+    %{id: "parlament", name: "p", label: "Parlament", type: "select", options: @parliament_options},
+    %{id: "wahlperiode", name: "wp", label: "Wahlperiode", type: "number", min: 0, placeholder: "z.B. 20"},
+    %{id: "vgtyp", name: "vgtyp", label: "Vorgangstyp", type: "select", options: @process_type_options},
+    %{id: "updated-since", name: "since", label: "Aktualisiert seit", type: "datetime-local"},
+    %{id: "updated-until", name: "until", label: "Aktualisiert bis", type: "datetime-local"},
+    %{id: "person", name: "person", label: "Initiator:innen-Name enthält", type: "text", placeholder: "z.B. Schmidt"},
+    %{id: "fach", name: "fach", label: "Initiator:innen-Fachgebiet", type: "text", placeholder: "z.B. Verfassungsrecht"},
+    %{id: "org", name: "org", label: "Initiator:innen-Organisation", type: "text", placeholder: "z.B. SPD"}
   ]}
   backend_url={@backend_url}
   api_key={@api_key}
@@ -17,69 +17,7 @@
   flash={@flash}
   page_id="vorgaenge-page"
   api_endpoint="/api/v1/vorgang"
-  loading_text="Loading legislative processes..."
-  empty_text="No legislative processes found"
+  loading_text="Gesetzgebungsverfahren werden geladen..."
+  empty_text="Keine Gesetzgebungsverfahren gefunden"
   render_item="vorgang"
-/>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  new DataManagementPage({
-    pageId: 'vorgaenge-page',
-    apiEndpoint: '/api/v1/vorgang',
-    emptyText: 'No legislative processes found',
-    renderItem: function(item) {
-      return `
-        <li class="px-6 py-4">
-          <div class="flex items-center justify-between">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <p class="text-sm font-medium text-indigo-600 truncate">
-                  <a href="/data_management/vorgaenge/${item.id}" class="hover:underline">
-                    ${item.titel || 'Untitled Process'}
-                  </a>
-                </p>
-                <div class="ml-2 flex-shrink-0 flex">
-                  <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                    ${item.parlament || 'Unknown'}
-                  </p>
-                </div>
-              </div>
-              <div class="mt-2 flex">
-                <div class="flex items-center text-sm text-gray-500">
-                  <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                  </svg>
-                  ${item.erstellt_am ? new Date(item.erstellt_am).toLocaleDateString('de-DE') : 'Unknown date'}
-                </div>
-              </div>
-              <div class="mt-2 flex">
-                <div class="flex items-center text-sm text-gray-500">
-                  <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                  </svg>
-                  ${item.vgtyp || 'Unknown type'}
-                </div>
-              </div>
-            </div>
-            <div class="ml-4 flex-shrink-0 flex space-x-2">
-              <button onclick="editVorgang('${item.id}', ${JSON.stringify(item).replace(/"/g, '\\"')})" class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Edit
-              </button>
-            </div>
-          </div>
-        </li>
-      `;
-    }
-  });
-});
-
-function editVorgang(id, item) {
-  
-  // TODO: Implement proper edit functionality
-  alert('Edit functionality not yet implemented');
-}
-</script> 
+/> 

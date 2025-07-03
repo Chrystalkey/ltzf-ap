@@ -53,6 +53,8 @@ defmodule LtzfApWeb.Router do
     get "/data_management", DataManagementController, :index
     get "/data_management/vorgaenge", DataManagementController, :vorgaenge
     get "/data_management/vorgang/:id", DataManagementController, :vorgang
+    put "/data_management/vorgang/:id", DataManagementController, :update_vorgang
+    delete "/data_management/vorgang/:id", DataManagementController, :delete_vorgang
     get "/data_management/sitzungen", DataManagementController, :sitzungen
     get "/data_management/sitzung/:id", DataManagementController, :sitzung
 
@@ -73,9 +75,4 @@ defmodule LtzfApWeb.Router do
     post "/users/:id/deactivate", UserController, :deactivate
     post "/users/:id/activate", UserController, :activate
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", LtzfApWeb do
-  #   pipe_through :api
-  # end
 end

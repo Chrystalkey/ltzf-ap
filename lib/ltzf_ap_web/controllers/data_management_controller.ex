@@ -22,7 +22,7 @@ defmodule LtzfApWeb.DataManagementController do
 
     case ApiClient.get_vorgang(backend_url, api_key, id) do
       {:ok, vorgang} ->
-        render(conn, :generic_vorgang_detail,
+        render(conn, :vorgang_detail,
           current_user: conn.assigns.current_user,
           vorgang: vorgang,
           layout: false
@@ -31,6 +31,43 @@ defmodule LtzfApWeb.DataManagementController do
         conn
         |> put_flash(:error, "Failed to fetch legislative process")
         |> redirect(to: "/data_management")
+    end
+  end
+
+
+
+  def update_vorgang(conn, %{"id" => id, "vorgang" => vorgang_params}) do
+    backend_url = get_session(conn, :backend_url) || ""
+    api_key = get_session(conn, :api_key) || ""
+
+    # Convert form data to proper structure
+    processed_params = process_vorgang_params(vorgang_params)
+
+    case ApiClient.put_vorgang(backend_url, api_key, id, processed_params) do
+      {:ok, _message} ->
+        conn
+        |> put_flash(:info, "Vorgang updated successfully")
+        |> redirect(to: "/data_management/vorgang/#{id}")
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Failed to update vorgang: #{reason}")
+        |> redirect(to: "/data_management/vorgang/#{id}")
+    end
+  end
+
+  def delete_vorgang(conn, %{"id" => id}) do
+    backend_url = get_session(conn, :backend_url) || ""
+    api_key = get_session(conn, :api_key) || ""
+
+    case ApiClient.delete_vorgang(backend_url, api_key, id) do
+      {:ok, _message} ->
+        conn
+        |> put_flash(:info, "Vorgang deleted successfully")
+        |> redirect(to: "/data_management/vorgaenge")
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Failed to delete vorgang: #{reason}")
+        |> redirect(to: "/data_management/vorgang/#{id}")
     end
   end
 
@@ -98,14 +135,12 @@ defmodule LtzfApWeb.DataManagementController do
   end
 
   def vorgaenge(conn, _params) do
-    generic_list_action(conn, "vorgang", "Legislative Processes", "View and manage legislative processes from the LTZF backend")
+    generic_list_action(conn, "vorgang", "Gesetzgebungsverfahren", "Gesetzgebungsverfahren aus dem LTZF-Backend anzeigen und verwalten")
   end
 
   def sitzungen(conn, _params) do
-    generic_list_action(conn, "sitzung", "Parliamentary Sessions", "View and manage parliamentary sessions from the LTZF backend")
+    generic_list_action(conn, "sitzung", "Parlamentssitzungen", "Parlamentssitzungen aus dem LTZF-Backend anzeigen und verwalten")
   end
-
-
 
   def enumerations(conn, _params) do
     backend_url = get_session(conn, :backend_url) || ""
@@ -144,12 +179,12 @@ defmodule LtzfApWeb.DataManagementController do
     api_key = get_session(conn, :api_key) || ""
 
     case ApiClient.get_sitzungen(backend_url, api_key, params) do
-      {:ok, data} ->
+      {:ok, data, headers} ->
         conn
-        |> put_resp_header("x-total-count", get_total_count_from_response(data))
-        |> put_resp_header("x-total-pages", get_total_pages_from_response(data))
-        |> put_resp_header("x-page", get_page_from_response(data))
-        |> put_resp_header("x-per-page", get_per_page_from_response(data))
+        |> put_resp_header("x-total-count", get_header(headers, "x-total-count"))
+        |> put_resp_header("x-total-pages", get_header(headers, "x-total-pages"))
+        |> put_resp_header("x-page", get_header(headers, "x-page"))
+        |> put_resp_header("x-per-page", get_header(headers, "x-per-page"))
         |> json(data)
       {:error, reason} ->
         conn
@@ -157,16 +192,6 @@ defmodule LtzfApWeb.DataManagementController do
         |> json(%{error: reason})
     end
   end
-
-  # Helper functions to extract pagination info from response
-  defp get_total_count_from_response(data) when is_list(data), do: to_string(length(data))
-  defp get_total_count_from_response(_), do: "0"
-
-  defp get_total_pages_from_response(_data), do: "1"  # Default to 1 page
-
-  defp get_page_from_response(_data), do: "1"  # Default to page 1
-
-  defp get_per_page_from_response(_data), do: "20"  # Default to 20 per page
 
   # Helper to get header value case-insensitively from headers list
   defp get_header(headers, key) do
@@ -176,5 +201,68 @@ defmodule LtzfApWeb.DataManagementController do
       {_, v} -> v
       nil -> ""
     end
+  end
+
+  # Process form parameters for vorgang update
+  defp process_vorgang_params(params) do
+    # Handle checkbox for verfassungsaendernd
+    verfassungsaendernd = Map.get(params, "verfassungsaendernd") == "true"
+
+    # Convert wahlperiode from string to integer
+    wahlperiode = case Map.get(params, "wahlperiode") do
+      nil -> nil
+      value when is_binary(value) ->
+        case Integer.parse(value) do
+          {int, _} -> int
+          :error -> nil
+        end
+      value when is_integer(value) -> value
+      _ -> nil
+    end
+
+    # Process IDs array
+    ids = case Map.get(params, "ids") do
+      nil -> []
+      ids_list when is_list(ids_list) ->
+        ids_list
+        |> Enum.filter(fn id -> id["id"] && String.trim(id["id"]) != "" end)
+        |> Enum.map(fn id -> %{"id" => id["id"], "typ" => id["typ"]} end)
+    end
+
+    # Process links array
+    links = case Map.get(params, "links") do
+      nil -> []
+      links_list when is_list(links_list) ->
+        links_list
+        |> Enum.filter(fn link -> link && String.trim(link) != "" end)
+    end
+
+    # Process initiators array
+    initiators = case Map.get(params, "initiatoren") do
+      nil -> []
+      initiators_list when is_list(initiators_list) ->
+        initiators_list
+        |> Enum.filter(fn initiator -> initiator["organisation"] && String.trim(initiator["organisation"]) != "" end)
+        |> Enum.map(fn initiator ->
+          %{
+            "person" => initiator["person"],
+            "organisation" => initiator["organisation"],
+            "fachgebiet" => initiator["fachgebiet"]
+          }
+          |> Enum.filter(fn {_k, v} -> v && String.trim(v) != "" end)
+          |> Map.new()
+        end)
+    end
+
+    # Build the final params structure
+    params
+    |> Map.put("verfassungsaendernd", verfassungsaendernd)
+    |> Map.put("wahlperiode", wahlperiode)
+    |> Map.put("ids", ids)
+    |> Map.put("links", links)
+    |> Map.put("initiatoren", initiators)
+    |> Map.drop(["ids", "links", "initiatoren"]) # Remove the original form arrays
+    |> Enum.filter(fn {_k, v} -> v != nil and v != "" end)
+    |> Map.new()
   end
 end

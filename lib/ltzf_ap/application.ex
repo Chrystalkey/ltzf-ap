@@ -15,8 +15,6 @@ defmodule LtzfAp.Application do
         skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:ltzf_ap, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: LtzfAp.PubSub},
-      # Start a worker by calling: LtzfAp.Worker.start_link(arg)
-      # {LtzfAp.Worker, arg},
       # Start to serve requests, typically the last entry
       LtzfApWeb.Endpoint
     ]

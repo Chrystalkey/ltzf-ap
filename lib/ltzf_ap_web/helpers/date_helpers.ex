@@ -9,12 +9,16 @@ defmodule LtzfApWeb.DateHelpers do
   """
   def safe_format_datetime(datetime_string, format) when is_binary(datetime_string) do
     case DateTime.from_iso8601(datetime_string) do
-      {:ok, datetime} ->
+      {:ok, datetime, _offset} ->
         Calendar.strftime(datetime, format)
       {:error, _reason} ->
         # Return the original string if parsing fails
         datetime_string
     end
+  end
+
+  def safe_format_datetime(%DateTime{} = datetime, format) do
+    Calendar.strftime(datetime, format)
   end
 
   def safe_format_datetime(nil, _format), do: nil

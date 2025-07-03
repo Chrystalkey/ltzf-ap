@@ -82,13 +82,13 @@ defmodule LtzfAp.ApiClient do
       query_params = build_query_params(params)
 
       case HTTPoison.get("#{url}?#{query_params}", headers, timeout: 5000) do
-        {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: response_headers}} ->
           case Jason.decode(body) do
-            {:ok, data} -> {:ok, data}
+            {:ok, data} -> {:ok, data, response_headers}
             {:error, _} -> {:error, "Invalid JSON response"}
           end
-        {:ok, %HTTPoison.Response{status_code: 204}} ->
-          {:ok, []}
+        {:ok, %HTTPoison.Response{status_code: 204, headers: response_headers}} ->
+          {:ok, [], response_headers}
         {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
           {:error, "HTTP #{status_code}: #{body}"}
         {:error, %HTTPoison.Error{reason: reason}} ->
@@ -222,6 +222,67 @@ defmodule LtzfAp.ApiClient do
   end
 
   # Private helper functions
+
+  @doc """
+  Updates a legislative process using PUT.
+  """
+  def put_vorgang(backend_url, api_key, id, data) do
+    if backend_url == "" or api_key == "" do
+      {:error, "Backend URL or API key not configured"}
+    else
+      url = "#{backend_url}/api/v1/vorgang/#{id}"
+
+      headers = [
+        {"X-API-Key", api_key},
+        {"Content-Type", "application/json"}
+      ]
+
+      case Jason.encode(data) do
+        {:ok, json_body} ->
+          case HTTPoison.put(url, json_body, headers, timeout: 10000) do
+            {:ok, %HTTPoison.Response{status_code: 201}} ->
+              {:ok, "Vorgang updated successfully"}
+            {:ok, %HTTPoison.Response{status_code: 403, body: body}} ->
+              {:error, "Forbidden: #{body}"}
+            {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
+              {:error, "HTTP #{status_code}: #{body}"}
+            {:error, %HTTPoison.Error{reason: reason}} ->
+              {:error, "Network error: #{reason}"}
+          end
+        {:error, _} ->
+          {:error, "Failed to encode data to JSON"}
+      end
+    end
+  end
+
+  @doc """
+  Deletes a legislative process.
+  """
+  def delete_vorgang(backend_url, api_key, id) do
+    if backend_url == "" or api_key == "" do
+      {:error, "Backend URL or API key not configured"}
+    else
+      url = "#{backend_url}/api/v1/vorgang/#{id}"
+
+      headers = [
+        {"X-API-Key", api_key},
+        {"Content-Type", "application/json"}
+      ]
+
+      case HTTPoison.delete(url, headers, timeout: 5000) do
+        {:ok, %HTTPoison.Response{status_code: 204}} ->
+          {:ok, "Vorgang deleted successfully"}
+        {:ok, %HTTPoison.Response{status_code: 403, body: body}} ->
+          {:error, "Forbidden: #{body}"}
+        {:ok, %HTTPoison.Response{status_code: 404, body: body}} ->
+          {:error, "Vorgang not found: #{body}"}
+        {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
+          {:error, "HTTP #{status_code}: #{body}"}
+        {:error, %HTTPoison.Error{reason: reason}} ->
+          {:error, "Network error: #{reason}"}
+      end
+    end
+  end
 
   defp build_query_params(params) do
     params
