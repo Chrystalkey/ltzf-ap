@@ -6,7 +6,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold leading-tight text-gray-900">Document</h1>
+            <h1 class="text-3xl font-bold leading-tight text-gray-900 m-0">Document</h1>
             <p class="mt-2 text-sm text-gray-600">
               <%= @dokument["titel"] %>
             </p>
@@ -50,31 +50,19 @@
                 <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                   <dt class="text-sm font-medium text-gray-500">Modified</dt>
                   <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <%= if @dokument["zp_modifiziert"] do %>
-                      <%= Calendar.strftime(DateTime.from_iso8601!(@dokument["zp_modifiziert"]), "%Y-%m-%d %H:%M") %>
-                    <% else %>
-                      N/A
-                    <% end %>
+                    <%= safe_format_datetime_short(@dokument["zp_modifiziert"]) || "N/A" %>
                   </dd>
                 </div>
                 <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                   <dt class="text-sm font-medium text-gray-500">Reference Date</dt>
                   <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <%= if @dokument["zp_referenz"] do %>
-                      <%= Calendar.strftime(DateTime.from_iso8601!(@dokument["zp_referenz"]), "%Y-%m-%d") %>
-                    <% else %>
-                      N/A
-                    <% end %>
+                    <%= safe_format_date(@dokument["zp_referenz"]) || "N/A" %>
                   </dd>
                 </div>
                 <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                   <dt class="text-sm font-medium text-gray-500">Created</dt>
                   <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <%= if @dokument["zp_erstellt"] do %>
-                      <%= Calendar.strftime(DateTime.from_iso8601!(@dokument["zp_erstellt"]), "%Y-%m-%d %H:%M") %>
-                    <% else %>
-                      N/A
-                    <% end %>
+                    <%= safe_format_datetime_short(@dokument["zp_erstellt"]) || "N/A" %>
                   </dd>
                 </div>
                 <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

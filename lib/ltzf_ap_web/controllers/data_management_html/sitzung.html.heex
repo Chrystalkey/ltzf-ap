@@ -6,7 +6,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold leading-tight text-gray-900">Parliamentary Session</h1>
+            <h1 class="text-3xl font-bold leading-tight text-gray-900 m-0">Parliamentary Session</h1>
             <p class="mt-2 text-sm text-gray-600">
               <%= @sitzung["titel"] || "Session ##{@sitzung["nummer"]}" %>
             </p>
@@ -42,11 +42,7 @@
                 <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                   <dt class="text-sm font-medium text-gray-500">Date & Time</dt>
                   <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <%= if @sitzung["termin"] do %>
-                      <%= Calendar.strftime(DateTime.from_iso8601!(@sitzung["termin"]), "%Y-%m-%d %H:%M") %>
-                    <% else %>
-                      N/A
-                    <% end %>
+                    <%= safe_format_datetime_short(@sitzung["termin"]) || "N/A" %>
                   </dd>
                 </div>
                 <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -116,9 +112,7 @@
                             <%= dokument["titel"] %>
                           </p>
                           <p class="text-sm text-gray-500">
-                            Type: <%= dokument["typ"] %> | Modified: <%= if dokument["zp_modifiziert"] do %>
-                              <%= Calendar.strftime(DateTime.from_iso8601!(dokument["zp_modifiziert"]), "%Y-%m-%d") %>
-                            <% end %>
+                            Type: <%= dokument["typ"] %> | Modified: <%= safe_format_date(dokument["zp_modifiziert"]) || "N/A" %>
                           </p>
                         </div>
                         <%= if dokument["api_id"] do %>

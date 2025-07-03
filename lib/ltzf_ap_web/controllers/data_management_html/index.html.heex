@@ -4,7 +4,7 @@
   <div class="py-10">
     <header>
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 class="text-3xl font-bold leading-tight text-gray-900">Data Management</h1>
+        <h1 class="text-3xl font-bold leading-tight text-gray-900 m-0">Data Management</h1>
       </div>
     </header>
     <main>
@@ -69,56 +69,29 @@
               </div>
             </div>
 
-            <!-- Committees -->
-            <div class="bg-white overflow-hidden shadow rounded-lg">
-              <div class="p-5">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                  </div>
-                  <div class="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">Committees</dt>
-                      <dd id="gremien-count" class="text-lg font-medium text-gray-900"><span class="animate-pulse">Loading…</span></dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                  <a href="/data_management/gremien" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                    View committees
-                    <svg class="ml-2 -mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
 
-            <!-- Authors -->
+
+            <!-- Enumerations -->
             <div class="bg-white overflow-hidden shadow rounded-lg">
               <div class="p-5">
                 <div class="flex items-center">
                   <div class="flex-shrink-0">
                     <svg class="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
                   </div>
                   <div class="ml-5 w-0 flex-1">
                     <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">Authors</dt>
-                      <dd id="autoren-count" class="text-lg font-medium text-gray-900"><span class="animate-pulse">Loading…</span></dd>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Enumerations</dt>
+                      <dd class="text-lg font-medium text-gray-900">8 Types</dd>
                     </dl>
                   </div>
                 </div>
               </div>
               <div class="bg-gray-50 px-5 py-3">
                 <div class="text-sm">
-                  <a href="/data_management/autoren" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                    View authors
+                  <a href="/data_management/enumerations" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                    Manage enumerations
                     <svg class="ml-2 -mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
@@ -192,31 +165,36 @@
     var el = document.getElementById(id);
     if (el) el.textContent = '—';
   }
-  document.addEventListener("DOMContentLoaded", function() {
+  function fetchCount(endpoint, countId) {
     var root = document.getElementById("data-management-root");
     var backendUrl = root.getAttribute("data-backend-url");
     var apiKey = root.getAttribute("data-api-key");
     var headers = { "X-API-Key": apiKey };
-    // Vorgänge
-    fetch(backendUrl + "/api/v1/vorgang?per_page=1", { headers })
-      .then(r => r.json())
-      .then(data => setCount("vorgaenge-count", Array.isArray(data) ? data.length + "+" : "0"))
-      .catch(() => setError("vorgaenge-count"));
-    // Sitzungen
-    fetch(backendUrl + "/api/v1/sitzung?per_page=1", { headers })
-      .then(r => r.json())
-      .then(data => setCount("sitzungen-count", Array.isArray(data) ? data.length + "+" : "0"))
-      .catch(() => setError("sitzungen-count"));
-    // Gremien
-    fetch(backendUrl + "/api/v1/gremien?per_page=1", { headers })
-      .then(r => r.json())
-      .then(data => setCount("gremien-count", Array.isArray(data) ? data.length + "+" : "0"))
-      .catch(() => setError("gremien-count"));
-    // Autoren
-    fetch(backendUrl + "/api/v1/autoren?per_page=1", { headers })
-      .then(r => r.json())
-      .then(data => setCount("autoren-count", Array.isArray(data) ? data.length + "+" : "0"))
-      .catch(() => setError("autoren-count"));
+    
+    // Ensure proper URL construction by handling trailing slashes
+    var baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+    var url = baseUrl + endpoint + "?per_page=1";
+    
+    fetch(url, { headers })
+      .then(response => {
+        // Handle case-insensitive headers as per HTTP specification
+        var totalCount = response.headers.get('x-total-count') || response.headers.get('X-Total-Count');
+        if (totalCount) {
+          setCount(countId, totalCount);
+        } else {
+          setCount(countId, "—");
+        }
+      })
+      .catch((error) => {
+        console.error(`Error fetching ${endpoint}:`, error);
+        setError(countId);
+      });
+  }
+  
+  document.addEventListener("DOMContentLoaded", function() {
+    // Fetch counts for all data types
+    fetchCount("/api/v1/vorgang", "vorgaenge-count");
+    fetchCount("/api/v1/sitzung", "sitzungen-count");
   });
 })();
 </script> 

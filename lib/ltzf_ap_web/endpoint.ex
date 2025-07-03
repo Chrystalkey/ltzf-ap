@@ -45,5 +45,26 @@ defmodule LtzfApWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+
+  # CORS configuration to expose custom headers
+  plug :cors_headers
+
   plug LtzfApWeb.Router
+
+  # CORS headers function
+  defp cors_headers(conn, _opts) do
+    # Handle OPTIONS preflight requests
+    if conn.method == "OPTIONS" do
+      conn
+      |> put_resp_header("access-control-allow-origin", "*")
+      |> put_resp_header("access-control-allow-methods", "GET, POST, PUT, DELETE, OPTIONS")
+      |> put_resp_header("access-control-allow-headers", "Content-Type, Authorization, X-API-Key")
+      |> put_resp_header("access-control-expose-headers", "x-total-count, x-total-pages, x-page, x-per-page, link")
+      |> send_resp(200, "")
+    else
+      # For actual requests, just expose the headers
+      conn
+      |> put_resp_header("access-control-expose-headers", "x-total-count, x-total-pages, x-page, x-per-page, link")
+    end
+  end
 end

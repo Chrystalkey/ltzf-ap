@@ -20,13 +20,13 @@ defmodule LtzfAp.ApiClient do
       query_params = build_query_params(params)
 
       case HTTPoison.get("#{url}?#{query_params}", headers, timeout: 5000) do
-        {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: response_headers}} ->
           case Jason.decode(body) do
-            {:ok, data} -> {:ok, data}
+            {:ok, data} -> {:ok, data, response_headers}
             {:error, _} -> {:error, "Invalid JSON response"}
           end
-        {:ok, %HTTPoison.Response{status_code: 204}} ->
-          {:ok, []}
+        {:ok, %HTTPoison.Response{status_code: 204, headers: response_headers}} ->
+          {:ok, [], response_headers}
         {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
           {:error, "HTTP #{status_code}: #{body}"}
         {:error, %HTTPoison.Error{reason: reason}} ->

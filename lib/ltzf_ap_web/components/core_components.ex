@@ -442,7 +442,7 @@ defmodule LtzfApWeb.CoreComponents do
     ~H"""
     <header class={[@actions != [] && "flex items-center justify-between gap-6", @class]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8 text-zinc-800">
+        <h1 class="text-lg font-semibold leading-8 text-zinc-800 m-0">
           {render_slot(@inner_block)}
         </h1>
         <p :if={@subtitle != []} class="mt-2 text-sm leading-6 text-zinc-600">
@@ -622,87 +622,82 @@ defmodule LtzfApWeb.CoreComponents do
 
   def admin_nav(assigns) do
     ~H"""
-    <nav class="bg-white shadow">
+    <nav class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
-              <h1 class="text-xl font-semibold text-gray-900">LTZF Admin Panel</h1>
+        <div class="flex justify-between h-14">
+          <!-- Left side: Logo and Navigation -->
+          <div class="flex items-center space-x-8">
+            <!-- Logo/Brand -->
+            <div class="flex-shrink-0">
+              <h1 class="text-lg font-semibold text-gray-900 tracking-tight m-0">LTZF Admin</h1>
             </div>
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-4">
-              <a href="/dashboard" class={[
-                "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium border shadow-sm transition-all duration-200",
-                if(@current_page == "dashboard", do: "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200 hover:text-indigo-800", else: "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900"),
-                "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              ]}>
-                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                                    <!-- Main Navigation -->
+            <div class="flex items-center space-x-2" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+              <a href="/dashboard" class="group relative inline-flex items-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-in-out shadow-sm bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-105">
+                <svg class="mr-2.5 h-4 w-4 transition-colors duration-300 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
                 </svg>
                 Dashboard
               </a>
-              <a :if={@current_user.role in ["superuser", "admin"]} href="/users" class={[
-                "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium border shadow-sm transition-all duration-200",
-                if(@current_page == "users", do: "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200 hover:text-indigo-800", else: "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900"),
-                "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              ]}>
-                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+              <a :if={@current_user.role in ["superuser", "admin"]} href="/users" class="group relative inline-flex items-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-in-out shadow-sm bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-105">
+                <svg class="mr-2.5 h-4 w-4 transition-colors duration-300 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
                 </svg>
-                User Management
+                Users
               </a>
-              <a href="/data_management" class={[
-                "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium border shadow-sm transition-all duration-200",
-                if(@current_page == "data_management", do: "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200 hover:text-indigo-800", else: "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900"),
-                "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              ]}>
-                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+              <a href="/data_management" class="group relative inline-flex items-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-in-out shadow-sm bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-105">
+                <svg class="mr-2.5 h-4 w-4 transition-colors duration-300 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
                 </svg>
                 Data Management
               </a>
-              <a href="/manual_input" class={[
-                "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium border shadow-sm transition-all duration-200",
-                if(@current_page == "manual_input", do: "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200 hover:text-indigo-800", else: "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900"),
-                "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              ]}>
-                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Manual Input
-              </a>
             </div>
           </div>
-          <div class="hidden sm:ml-6 sm:flex sm:items-center">
-            <div class="ml-3 relative">
-              <div class="flex items-center space-x-4">
-                <.backend_status />
-                <span class="text-sm text-gray-700">Welcome, {String.first(@current_user.email)}</span>
-                <span class="text-xs text-gray-500">({@current_user.email})</span>
-                <span :if={@current_user.role == "superuser"} class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
-                  Superuser
-                </span>
-                <span :if={@current_user.role == "admin"} class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                  Admin
-                </span>
-                <a href="/settings" class={[
-                  "inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border shadow-sm transition-all duration-200",
-                  if(@current_page == "settings", do: "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200 hover:text-indigo-800", else: "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900"),
-                  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                ]}>
-                  <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
-                  Settings
-                </a>
-                <a href="/logout" data-method="delete" class="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
-                  <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                  </svg>
-                  Logout
-                </a>
+
+          <!-- Right side: Status, User Info, and Actions -->
+          <div class="flex items-center space-x-6">
+            <!-- Backend Status -->
+            <div class="block">
+              <.backend_status />
+            </div>
+
+            <!-- User Information -->
+            <div class="flex items-center space-x-3">
+              <!-- User Details (stacked vertically) -->
+              <div class="flex flex-col items-end">
+                <div class="flex items-center space-x-2">
+                  <span class="text-sm font-medium text-gray-900">{String.first(@current_user.email)}</span>
+                  <span :if={@current_user.role == "superuser"} class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                    Superuser
+                  </span>
+                  <span :if={@current_user.role == "admin"} class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                    Admin
+                  </span>
+                </div>
+                <span class="text-xs text-gray-500">{@current_user.email}</span>
               </div>
+
+                                            <!-- Action Buttons -->
+               <div class="flex items-center space-x-2" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+                 <a href="/settings" class="group relative inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ease-in-out shadow-sm bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-105">
+                   <svg class="mr-1.5 h-4 w-4 transition-colors duration-300 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                   </svg>
+                   Settings
+                 </a>
+
+                 <a href="/logout" data-method="delete" class="group relative inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 hover:text-red-700 hover:shadow-md transition-all duration-300 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transform hover:scale-105">
+                   <svg class="mr-1.5 h-4 w-4 text-red-500 group-hover:text-red-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                   </svg>
+                   Logout
+                 </a>
+               </div>
             </div>
           </div>
         </div>
@@ -720,16 +715,16 @@ defmodule LtzfApWeb.CoreComponents do
   """
   def backend_status(assigns) do
     ~H"""
-    <div id="backend-status" class="flex items-center space-x-2">
-      <div class="flex items-center space-x-1">
+    <div id="backend-status" class="flex items-center space-x-2 px-3 py-1.5 bg-gray-50 rounded-md border border-gray-200">
+      <div class="flex items-center space-x-2">
         <div id="status-indicator" class="w-2 h-2 rounded-full bg-gray-400"></div>
-        <span id="status-text" class="text-xs text-gray-600">Checking...</span>
+        <span id="status-text" class="text-xs font-medium text-gray-600">Checking...</span>
       </div>
       <button
         id="check-connection-btn"
         type="button"
-        class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
-        title="Check backend connection"
+        class="inline-flex items-center p-1 rounded text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 transition-all duration-200"
+        title="Quick recheck backend connection"
       >
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -750,13 +745,13 @@ defmodule LtzfApWeb.CoreComponents do
         if (isConnected) {
           indicator.className = 'w-2 h-2 rounded-full bg-green-500';
           statusText.textContent = 'Connected';
-          statusText.className = 'text-xs text-green-600';
-          checkBtn.className = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200';
+          statusText.className = 'text-xs font-medium text-green-600';
+          checkBtn.className = 'inline-flex items-center p-1 rounded text-xs font-medium text-green-600 hover:text-green-700 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200';
         } else {
           indicator.className = 'w-2 h-2 rounded-full bg-red-500';
           statusText.textContent = message || 'Disconnected';
-          statusText.className = 'text-xs text-red-600';
-          checkBtn.className = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200';
+          statusText.className = 'text-xs font-medium text-red-600';
+          checkBtn.className = 'inline-flex items-center p-1 rounded text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500 transition-all duration-200';
         }
       }
 
@@ -767,9 +762,9 @@ defmodule LtzfApWeb.CoreComponents do
 
         indicator.className = 'w-2 h-2 rounded-full bg-yellow-500 animate-pulse';
         statusText.textContent = 'Checking...';
-        statusText.className = 'text-xs text-yellow-600';
+        statusText.className = 'text-xs font-medium text-yellow-600';
         checkBtn.disabled = true;
-        checkBtn.className = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-400 cursor-not-allowed transition-all duration-200';
+        checkBtn.className = 'inline-flex items-center p-1 rounded text-xs font-medium text-gray-400 cursor-not-allowed transition-all duration-200';
       }
 
       function checkBackendConnection() {
@@ -787,10 +782,13 @@ defmodule LtzfApWeb.CoreComponents do
           return;
         }
 
-        fetch(`${backendUrl}/ping`, {
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        fetch(`${backendUrl}/ping?t=${timestamp}`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
           }
         })
         .then(response => {
@@ -825,8 +823,14 @@ defmodule LtzfApWeb.CoreComponents do
 
       // Initialize
       document.addEventListener('DOMContentLoaded', function() {
-        // Set up manual check button
-        document.getElementById('check-connection-btn').addEventListener('click', checkBackendConnection);
+        // Set up manual check button with click handler
+        const checkBtn = document.getElementById('check-connection-btn');
+        if (checkBtn) {
+          checkBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            checkBackendConnection();
+          });
+        }
 
         // Initial check
         checkBackendConnection();

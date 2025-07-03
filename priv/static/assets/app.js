@@ -10,6 +10,15 @@
 // into your javascript bundle:
 // * deps/phoenix_live_view/priv/static/phoenix_live_view.js
 
+// Shared edit function generator to eliminate duplication
+function createEditFunction(entityType) {
+  return function(id, item) {
+    console.log(`Edit ${entityType}:`, id, item);
+    // TODO: Implement proper edit functionality
+    alert('Edit functionality not yet implemented');
+  };
+}
+
 // Shared JavaScript for data management pages
 class DataManagementPage {
   constructor(config) {
@@ -138,9 +147,9 @@ class DataManagementPage {
 
       if (!response.ok) throw new Error('Network response was not ok');
       
-      // Capture pagination headers before parsing JSON
-      const totalCount = response.headers.get('X-Total-Count');
-      const responseTotalPages = response.headers.get('X-Total-Pages');
+      // Capture pagination headers before parsing JSON (case-insensitive)
+      const totalCount = response.headers.get('x-total-count') || response.headers.get('X-Total-Count');
+      const responseTotalPages = response.headers.get('x-total-pages') || response.headers.get('X-Total-Pages');
       
       const data = await response.json();
       const resultsList = document.getElementById('results-list');
@@ -213,6 +222,7 @@ class DataManagementPage {
 
 // Export for use in other modules
 window.DataManagementPage = DataManagementPage;
+window.createEditFunction = createEditFunction;
 
 // Flash message auto-dismiss functionality
 function setupFlashMessages() {

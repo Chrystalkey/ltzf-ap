@@ -55,21 +55,14 @@ defmodule LtzfApWeb.Router do
     get "/data_management/vorgang/:id", DataManagementController, :vorgang
     get "/data_management/sitzungen", DataManagementController, :sitzungen
     get "/data_management/sitzung/:id", DataManagementController, :sitzung
-    get "/data_management/gremien", DataManagementController, :gremien
-    get "/data_management/autoren", DataManagementController, :autoren
 
-    # Manual input routes
-    get "/manual_input", ManualInputController, :index
-    get "/manual_input/vorgang/new", ManualInputController, :new_vorgang
-    post "/manual_input/vorgang", ManualInputController, :create_vorgang
-    get "/manual_input/sitzung/new", ManualInputController, :new_sitzung
-    post "/manual_input/sitzung", ManualInputController, :create_sitzung
-    get "/manual_input/dokument/new", ManualInputController, :new_dokument
-    post "/manual_input/dokument", ManualInputController, :create_dokument
-    get "/manual_input/gremium/new", ManualInputController, :new_gremium
-    post "/manual_input/gremium", ManualInputController, :create_gremium
-    get "/manual_input/autor/new", ManualInputController, :new_autor
-    post "/manual_input/autor", ManualInputController, :create_autor
+    get "/data_management/enumerations", DataManagementController, :enumerations
+
+    # Proxy endpoints for API calls (to handle CORS headers)
+    get "/api/proxy/vorgang", DataManagementController, :proxy_vorgang
+    get "/api/proxy/sitzung", DataManagementController, :proxy_sitzung
+
+
   end
 
   scope "/", LtzfApWeb do

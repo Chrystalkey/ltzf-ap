@@ -6,7 +6,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold leading-tight text-gray-900">Legislative Process</h1>
+            <h1 class="text-3xl font-bold leading-tight text-gray-900 m-0">Legislative Process</h1>
             <p class="mt-2 text-sm text-gray-600">
               <%= @vorgang["titel"] %>
             </p>
@@ -117,10 +117,10 @@
                           </p>
                           <p class="text-sm text-gray-500">
                             <%= if station["zp_start"] do %>
-                              Started: <%= Calendar.strftime(DateTime.from_iso8601!(station["zp_start"]), "%Y-%m-%d") %>
+                              Started: <%= safe_format_date(station["zp_start"]) %>
                             <% end %>
                             <%= if station["zp_modifiziert"] do %>
-                              | Modified: <%= Calendar.strftime(DateTime.from_iso8601!(station["zp_modifiziert"]), "%Y-%m-%d") %>
+                              | Modified: <%= safe_format_date(station["zp_modifiziert"]) %>
                             <% end %>
                           </p>
                         </div>
