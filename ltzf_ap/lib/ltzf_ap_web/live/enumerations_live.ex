@@ -15,7 +15,6 @@ defmodule LtzfApWeb.EnumerationsLive do
   def handle_event("restore_session", %{"session_id" => session_id}, socket) do
     case mount_with_session(session_id, socket) do
       {:ok, updated_socket} -> {:noreply, updated_socket}
-      {:ok, updated_socket, _opts} -> {:noreply, updated_socket}
     end
   end
 

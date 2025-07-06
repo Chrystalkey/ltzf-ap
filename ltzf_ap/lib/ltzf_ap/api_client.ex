@@ -58,17 +58,24 @@ defmodule LtzfAp.ApiClient do
     query_string = build_query_string(params)
     full_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
 
+
     case Finch.build(:get, full_url, headers) |> Finch.request(@finch_name) do
       {:ok, %{status: 200, body: body, headers: response_headers}} ->
         case Jason.decode(body) do
-          {:ok, data} -> {:ok, data, response_headers}
-          {:error, reason} -> {:error, reason}
+          {:ok, data} ->
+            {:ok, data, response_headers}
+          {:error, reason} ->
+            {:error, reason}
         end
 
-      {:ok, %{status: 204, headers: response_headers}} -> {:ok, [], response_headers}
-      {:ok, %{status: 403}} -> {:error, :forbidden}
-      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
-      {:error, reason} -> {:error, reason}
+      {:ok, %{status: 204, headers: response_headers}} ->
+        {:ok, [], response_headers}
+      {:ok, %{status: 403}} ->
+        {:error, :forbidden}
+      {:ok, %{status: status}} ->
+        {:error, "HTTP #{status}"}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

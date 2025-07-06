@@ -90,19 +90,7 @@ defmodule LtzfApWeb.LoginLive do
     end
   end
 
-    defp check_connectivity(socket, backend_url) when backend_url != "" do
-    # Only check connectivity for valid URLs
-    if valid_url?(backend_url) do
-      case LtzfAp.ApiClient.ping(backend_url) do
-        {:ok, :pong} -> assign(socket, connectivity_status: :connected)
-        {:error, _} -> assign(socket, connectivity_status: :disconnected)
-      end
-    else
-      assign(socket, connectivity_status: :invalid_url)
-    end
-  end
 
-  defp check_connectivity(socket, _), do: assign(socket, connectivity_status: :unknown)
 
   defp valid_url?(url) do
     case URI.parse(url) do
