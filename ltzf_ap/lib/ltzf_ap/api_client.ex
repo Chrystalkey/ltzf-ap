@@ -108,6 +108,13 @@ defmodule LtzfAp.ApiClient do
   end
 
   def get_enumerations(backend_url, api_key, enum_name, params \\ []) do
+    case get_enumerations_with_headers(backend_url, api_key, enum_name, params) do
+      {:ok, data, _headers} -> {:ok, data}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def get_enumerations_with_headers(backend_url, api_key, enum_name, params \\ []) do
     url = "#{backend_url}/api/v1/enumeration/#{enum_name}"
     headers = [{"X-API-Key", api_key}]
 
@@ -115,15 +122,71 @@ defmodule LtzfAp.ApiClient do
     full_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
 
     case Finch.build(:get, full_url, headers) |> Finch.request(@finch_name) do
-      {:ok, %{status: 200, body: body}} ->
+      {:ok, %{status: 200, body: body, headers: response_headers}} ->
         case Jason.decode(body) do
-          {:ok, data} -> {:ok, data}
+          {:ok, data} -> {:ok, data, response_headers}
           {:error, reason} -> {:error, reason}
         end
 
-      {:ok, %{status: 204}} -> {:ok, []}
+      {:ok, %{status: 204, headers: response_headers}} -> {:ok, [], response_headers}
       {:ok, %{status: 403}} -> {:error, :forbidden}
       {:ok, %{status: 404}} -> {:error, :not_found}
+      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def get_autoren(backend_url, api_key, params \\ []) do
+    case get_autoren_with_headers(backend_url, api_key, params) do
+      {:ok, data, _headers} -> {:ok, data}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def get_autoren_with_headers(backend_url, api_key, params \\ []) do
+    url = "#{backend_url}/api/v1/autoren"
+    headers = [{"X-API-Key", api_key}]
+
+    query_string = build_query_string(params)
+    full_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
+
+    case Finch.build(:get, full_url, headers) |> Finch.request(@finch_name) do
+      {:ok, %{status: 200, body: body, headers: response_headers}} ->
+        case Jason.decode(body) do
+          {:ok, data} -> {:ok, data, response_headers}
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:ok, %{status: 204, headers: response_headers}} -> {:ok, [], response_headers}
+      {:ok, %{status: 403}} -> {:error, :forbidden}
+      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def get_gremien(backend_url, api_key, params \\ []) do
+    case get_gremien_with_headers(backend_url, api_key, params) do
+      {:ok, data, _headers} -> {:ok, data}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def get_gremien_with_headers(backend_url, api_key, params \\ []) do
+    url = "#{backend_url}/api/v1/gremien"
+    headers = [{"X-API-Key", api_key}]
+
+    query_string = build_query_string(params)
+    full_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
+
+    case Finch.build(:get, full_url, headers) |> Finch.request(@finch_name) do
+      {:ok, %{status: 200, body: body, headers: response_headers}} ->
+        case Jason.decode(body) do
+          {:ok, data} -> {:ok, data, response_headers}
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:ok, %{status: 204, headers: response_headers}} -> {:ok, [], response_headers}
+      {:ok, %{status: 403}} -> {:error, :forbidden}
       {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
       {:error, reason} -> {:error, reason}
     end
