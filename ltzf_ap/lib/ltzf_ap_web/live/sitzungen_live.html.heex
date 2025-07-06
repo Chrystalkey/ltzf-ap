@@ -1,81 +1,15 @@
 <div id="sitzungen-container" class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" phx-hook="SessionHook">
   <!-- Modern Header -->
-  <header class="bg-white/80 backdrop-blur-sm border-b border-slate-200/60 sticky top-0 z-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center py-4">
-        <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-xl font-semibold text-slate-900">LTZF Admin Panel</h1>
-            <p class="text-sm text-slate-500">Sitzungen Kalender</p>
-          </div>
-        </div>
-        
-        <div class="flex items-center space-x-6">
-          <div class="hidden sm:flex items-center space-x-4 text-sm">
-            <div class="flex items-center space-x-2">
-              <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span class="text-slate-600 font-medium">
-                <%= if @session_id do %>
-                  <%= LtzfAp.Auth.scope_display_name(@auth_info.scope) %>
-                <% else %>
-                  Loading...
-                <% end %>
-              </span>
-            </div>
-            <div class="text-slate-500">
-              <span class="font-medium">Session:</span>
-              <span class="ml-1">
-                <%= if @session_id do %>
-                  <%= format_time_remaining(@session_data.expires_at) %>
-                <% else %>
-                  Loading...
-                <% end %>
-              </span>
-            </div>
-          </div>
-          
-          <div class="flex items-center space-x-3">
-            <a href={~p"/dashboard"} class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              Dashboard
-            </a>
-            
-            <%= if @session_id do %>
-              <button
-                phx-click="logout"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 shadow-sm"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
-              </button>
-            <% end %>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
+  <.app_header 
+    subtitle="Sitzungen Kalender"
+    session_id={@session_id}
+    auth_info={@auth_info}
+    session_data={@session_data}
+  />
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-slate-900">Sitzungen Kalender</h1>
-      <div class="flex space-x-2">
-        <button phx-click="clear_filters" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-          Filter zurücksetzen
-        </button>
-      </div>
-    </div>
-
-
+    <.page_header title="Sitzungen Kalender" />
 
     <!-- Filters -->
     <div class="bg-white shadow rounded-lg p-6 mb-6">
@@ -149,31 +83,12 @@
 
     <!-- Loading State -->
     <%= if @loading do %>
-      <div class="bg-white shadow rounded-lg p-6 mb-6">
-        <div class="flex items-center justify-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          <span class="ml-2 text-gray-600">Lade Sitzungen...</span>
-        </div>
-      </div>
+      <.loading_state message="Lade Sitzungen..." />
     <% end %>
 
     <!-- Error State -->
     <%= if @error do %>
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">Fehler beim Laden der Sitzungen</h3>
-            <div class="mt-2 text-sm text-red-700">
-              <p><%= @error %></p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <.error_state title="Fehler beim Laden der Sitzungen" message={@error} />
     <% end %>
 
     <!-- Week Navigation -->
@@ -201,23 +116,21 @@
             <button 
               phx-click="go_to_week" 
               phx-value-date={Date.to_string(Date.utc_today())}
-              class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+              class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
             >
               Heute
             </button>
-            <span class="text-gray-300">|</span>
             <button 
               phx-click="go_to_week" 
               phx-value-date={Date.to_string(Date.add(Date.utc_today(), -7))}
-              class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded"
+              class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
             >
               Letzte Woche
             </button>
-            <span class="text-gray-300">|</span>
             <button 
               phx-click="go_to_week" 
               phx-value-date={Date.to_string(Date.add(Date.utc_today(), 7))}
-              class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded"
+              class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
             >
               Nächste Woche
             </button>
@@ -237,150 +150,100 @@
       </div>
     </div>
 
-    <!-- Week Calendar -->
-    <%= if @sitzungen && length(@sitzungen) > 0 do %>
-      <!-- Results Info -->
-      <%= if @pagination.total_count do %>
-        <div class="bg-white shadow rounded-lg p-4 mb-4">
-          <div class="flex justify-between items-center">
-            <p class="text-sm text-gray-700">
-              Zeige <%= (@pagination.current_page - 1) * @pagination.per_page + 1 %> bis <%= min(@pagination.current_page * @pagination.per_page, @pagination.total_count) %> von <%= @pagination.total_count %> Sitzungen
-            </p>
-            <div class="flex space-x-2">
-              <%= if @pagination.current_page > 1 do %>
-                <button phx-click="page_change" phx-value-page={@pagination.current_page - 1} class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
-                  Zurück
-                </button>
+    <!-- Calendar -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="grid grid-cols-7 gap-px bg-gray-200">
+        <!-- Day Headers -->
+        <%= for day <- get_week_days(@current_week_start) do %>
+          <div class="bg-gray-50 p-3 text-center">
+            <div class="text-sm font-medium text-gray-900">
+              <%= case Date.day_of_week(day) do %>
+                <% 1 -> %>Mo
+                <% 2 -> %>Di
+                <% 3 -> %>Mi
+                <% 4 -> %>Do
+                <% 5 -> %>Fr
+                <% 6 -> %>Sa
+                <% 7 -> %>So
               <% end %>
-              <%= if @pagination.current_page < @pagination.total_pages do %>
-                <button phx-click="page_change" phx-value-page={@pagination.current_page + 1} class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
-                  Weiter
-                </button>
-              <% end %>
+            </div>
+            <div class="text-lg font-semibold text-gray-700">
+              <%= day.day %>
+            </div>
+            <div class="text-xs text-gray-500">
+              <%= day.month %>/<%= day.year %>
             </div>
           </div>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
 
-      <!-- Calendar Grid -->
-      <div class="bg-white shadow rounded-lg overflow-hidden">
-        <div class="grid grid-cols-7 gap-px bg-gray-200">
-          <!-- Day Headers -->
-          <%= for {day, index} <- Enum.with_index(get_week_days(@current_week_start)) do %>
-            <div class="bg-gray-50 p-4 text-center">
-              <div class="text-sm font-medium text-gray-900">
-                <%= case get_day_of_week(day) do %>
-                  <% 1 -> %>Montag
-                  <% 2 -> %>Dienstag
-                  <% 3 -> %>Mittwoch
-                  <% 4 -> %>Donnerstag
-                  <% 5 -> %>Freitag
-                  <% 6 -> %>Samstag
-                  <% 7 -> %>Sonntag
-                <% end %>
-              </div>
-              <div class="text-lg font-bold text-gray-900">
-                <%= day.day %>
-              </div>
-              <div class="text-xs text-gray-500">
-                <%= Date.to_string(day) %>
-              </div>
-            </div>
-          <% end %>
-        </div>
-
-        <!-- Calendar Content -->
-        <div class="grid grid-cols-7 gap-px bg-gray-200 min-h-96">
-          <%= for {day, index} <- Enum.with_index(get_week_days(@current_week_start)) do %>
-            <div class="bg-white p-2 min-h-96">
-              <% day_sitzungen = group_sitzungen_by_day(@sitzungen)[day] || [] %>
-              <%= if length(day_sitzungen) > 0 do %>
-                <div class="space-y-2">
-                  <%= for sitzung <- day_sitzungen do %>
-                    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all">
-                      <!-- Time and Status Row -->
-                      <div class="flex items-center justify-between p-2 bg-gray-50 border-b border-gray-200">
-                        <div class="text-sm font-medium text-gray-900">
-                          <%= format_time(sitzung["termin"]) %>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                          <%= if sitzung["public"] do %>
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Öffentlich
-                            </span>
-                          <% else %>
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              Nicht öffentlich
-                            </span>
-                          <% end %>
-                          <%= if sitzung["link"] do %>
-                            <a href={sitzung["link"]} target="_blank" class="text-gray-600 hover:text-gray-800">
-                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </a>
-                          <% end %>
-                        </div>
+      <!-- Calendar Content -->
+      <div class="grid grid-cols-7 gap-px bg-gray-200 min-h-96">
+        <%= for day <- get_week_days(@current_week_start) do %>
+          <div class="bg-white p-2 min-h-96">
+            <%= if sessions = group_sitzungen_by_day(@sitzungen)[day] do %>
+              <div class="space-y-2">
+                <%= for session <- sessions do %>
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors">
+                    <!-- Time and Public Status -->
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm font-medium text-blue-900">
+                        <%= format_time(session["termin"]) %>
+                      </span>
+                      <span class={if session["public"], do: "text-green-600", else: "text-red-600"}>
+                        <%= if session["public"], do: "Öffentlich", else: "Nicht öffentlich" %>
+                      </span>
+                    </div>
+                    
+                    <!-- Parliament Bar -->
+                    <%= if session["gremium"] && session["gremium"]["parlament"] do %>
+                      <div class={"w-full h-2 rounded mb-2 #{get_parliament_color(session["gremium"]["parlament"])}"}></div>
+                    <% end %>
+                    
+                    <!-- Session Info -->
+                    <div class="space-y-1">
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= session["titel"] || "Sitzung" %>
                       </div>
-                      
-                      <!-- Parliament/Wahlperiode Colored Bar -->
-                      <div class={"px-3 py-2 #{get_parliament_color(sitzung["gremium"]["parlament"])}"}>
-                        <div class="text-xs font-semibold text-white">
-                          <%= sitzung["gremium"]["parlament"] %> <%= sitzung["gremium"]["wahlperiode"] %>
-                        </div>
+                      <div class="text-xs text-gray-600">
+                        <%= get_gremium_display_name(session["gremium"]) %>
                       </div>
-                      
-                      <!-- Content -->
-                      <div class="p-3">
-                        <div class="text-sm font-medium text-gray-900 mb-1">
-                          <%= sitzung["gremium"]["name"] %>
-                        </div>
-                        <%= if sitzung["titel"] do %>
-                          <div class="text-xs text-gray-600 truncate">
-                            <%= sitzung["titel"] %>
-                          </div>
-                        <% end %>
-                        <%= if sitzung["nummer"] do %>
-                          <div class="flex items-center justify-between mt-1">
-                            <div class="text-xs text-gray-500">
-                              Nr. <%= sitzung["nummer"] %>
-                            </div>
-                            <button 
-                              phx-click="edit_session" 
-                              phx-value-session-id={sitzung["api_id"]}
-                              class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-blue-200 hover:border-blue-300 transition-colors"
-                            >
-                              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Bearbeiten
-                            </button>
-                          </div>
-                        <% end %>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">
+                          Nr. <%= session["nummer"] %>
+                        </span>
+                        <button 
+                          phx-click="edit_session" 
+                          phx-value-session-id={session["api_id"]}
+                          class="text-xs text-blue-600 hover:text-blue-800 flex items-center"
+                        >
+                          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Bearbeiten
+                        </button>
                       </div>
                     </div>
-                  <% end %>
-                </div>
-              <% else %>
-                <div class="flex items-center justify-center h-full">
-                  <p class="text-sm text-gray-400">Keine Sitzungen</p>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
+                    
+                    <!-- Links -->
+                    <%= if session["link"] do %>
+                      <div class="mt-2">
+                        <a href={session["link"]} target="_blank" class="text-xs text-blue-600 hover:text-blue-800">
+                          Link zur Sitzung →
+                        </a>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="text-center text-gray-400 text-sm py-8">
+                Keine Sitzungen
+              </div>
+            <% end %>
+          </div>
+        <% end %>
       </div>
-    <% else %>
-      <!-- No Results -->
-      <div class="bg-white shadow rounded-lg p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Sitzungen gefunden</h3>
-        <p class="mt-1 text-sm text-gray-500">
-          Für die ausgewählte Woche wurden keine Sitzungen gefunden.
-        </p>
-      </div>
-    <% end %>
+    </div>
   </main>
 </div> 
