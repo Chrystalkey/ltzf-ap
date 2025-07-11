@@ -94,13 +94,13 @@
                         >
                           <div class={[
                             "h-4 w-4 border-2 rounded flex items-center justify-center",
-                            if value in @selected_items do
+                            if get_item_id_for_display(value, @selected_enumeration) in @selected_items do
                               "bg-indigo-600 border-indigo-600"
                             else
                               "border-gray-300"
                             end
                           ]}>
-                            <%= if value in @selected_items do %>
+                            <%= if get_item_id_for_display(value, @selected_enumeration) in @selected_items do %>
                               <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                               </svg>
@@ -133,15 +133,47 @@
                           </div>
                         </button>
                       </div>
-                      <button
-                        class="text-blue-600 hover:text-blue-800 text-sm"
-                        phx-click="edit_item"
-                        phx-value-item={get_item_id(value, @selected_enumeration)}
-                      >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                      </button>
+                      <%= if @editing && @editing_item_id == get_item_id(value, @selected_enumeration) do %>
+                        <!-- Edit Form -->
+                        <div class="flex items-center space-x-2">
+                          <form phx-change="update_editing_value" phx-submit="save_edit" class="flex-1">
+                            <input
+                              type="text"
+                              name="value"
+                              value={@editing_value}
+                              class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              autofocus
+                            />
+                          </form>
+                          <button
+                            class="text-green-600 hover:text-green-800 text-sm"
+                            phx-click="save_edit"
+                            phx-value-value={@editing_value}
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                          </button>
+                          <button
+                            class="text-gray-600 hover:text-gray-800 text-sm"
+                            phx-click="cancel_edit"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      <% else %>
+                        <button
+                          class="text-blue-600 hover:text-blue-800 text-sm"
+                          phx-click="edit_item"
+                          phx-value-item={get_item_id(value, @selected_enumeration)}
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                          </svg>
+                        </button>
+                      <% end %>
                     </div>
                   <% end %>
                 </div>
@@ -223,16 +255,15 @@
                   <label class="block text-sm font-medium text-gray-700">
                     Replacement Value:
                   </label>
-                  <form phx-change="update_merge_value">
-                    <input
-                      type="text"
-                      name="value"
-                      value={@merge_replacement_value}
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter the value to replace selected items..."
-                      autofocus
-                    />
-                  </form>
+                  <input
+                    type="text"
+                    name="value"
+                    value={@merge_replacement_value}
+                    phx-change="update_merge_value"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter the value to replace selected items..."
+                    autofocus
+                  />
                 </div>
                 
                 <div class="flex space-x-2">
@@ -274,107 +305,140 @@
 
             <!-- Filter Options -->
             <div class="border-t border-gray-200 pt-6">
-              <h3 class="text-sm font-medium text-gray-700 mb-4">Filter Options</h3>
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-medium text-gray-700">Filter Options</h3>
+                <button
+                  type="button"
+                  phx-click="clear_filters"
+                  class="text-xs text-gray-500 hover:text-gray-700 underline"
+                >
+                  Clear Filters
+                </button>
+              </div>
               
-              <form phx-change="filter_values" class="space-y-4">
-                <%= case @selected_enumeration do %>
-                  <% "autoren" -> %>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Person enthält</label>
-                      <input 
-                        type="text" 
-                        name="filter[person]" 
-                        value={@current_filters["person"] || ""}
-                        placeholder="Name oder Teilname"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Fachgebiet</label>
-                      <input 
-                        type="text" 
-                        name="filter[fach]" 
-                        value={@current_filters["fach"] || ""}
-                        placeholder="Fachgebiet"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Organisation</label>
-                      <input 
-                        type="text" 
-                        name="filter[org]" 
-                        value={@current_filters["org"] || ""}
-                        placeholder="Organisation"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                      />
-                    </div>
+              <form phx-change="filter_values" phx-submit="add_value">
+                <div class="space-y-4">
+                  <%= case @selected_enumeration do %>
+                    <% "autoren" -> %>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Person enthält</label>
+                        <input 
+                          type="text" 
+                          name="filter[person]" 
+                          value={@current_filters["person"] || ""}
+                          placeholder="Name oder Teilname"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fachgebiet</label>
+                        <input 
+                          type="text" 
+                          name="filter[fach]" 
+                          value={@current_filters["fach"] || ""}
+                          placeholder="Fachgebiet"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Organisation</label>
+                        <input 
+                          type="text" 
+                          name="filter[org]" 
+                          value={@current_filters["org"] || ""}
+                          placeholder="Organisation"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        />
+                      </div>
 
-                  <% "gremien" -> %>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Gremium enthält</label>
-                      <input 
-                        type="text" 
-                        name="filter[gr]" 
-                        value={@current_filters["gr"] || ""}
-                        placeholder="Gremium Name"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Parlament</label>
-                      <select 
-                        name="filter[p]" 
-                        value={@current_filters["p"] || ""}
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                      >
-                        <option value="">Alle</option>
-                        <option value="BT">Bundestag</option>
-                        <option value="BR">Bundesrat</option>
-                        <option value="BV">Bundesversammlung</option>
-                        <option value="EK">Europakammer des Bundesrats</option>
-                        <option value="BB">Brandenburg</option>
-                        <option value="BY">Bayern</option>
-                        <option value="BE">Berlin</option>
-                        <option value="HB">Hansestadt Bremen</option>
-                        <option value="HH">Hansestadt Hamburg</option>
-                        <option value="HE">Hessen</option>
-                        <option value="MV">Mecklenburg-Vorpommern</option>
-                        <option value="NI">Niedersachsen</option>
-                        <option value="NW">Nordrhein-Westfalen</option>
-                        <option value="RP">Rheinland-Pfalz</option>
-                        <option value="SL">Saarland</option>
-                        <option value="SN">Sachsen</option>
-                        <option value="TH">Thüringen</option>
-                        <option value="SH">Schleswig-Holstein</option>
-                        <option value="BW">Baden-Württemberg</option>
-                        <option value="ST">Sachsen-Anhalt</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Wahlperiode</label>
-                      <input 
-                        type="number" 
-                        name="filter[wp]" 
-                        value={@current_filters["wp"] || ""}
-                        placeholder="z.B. 20"
-                        min="0"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                      />
-                    </div>
+                    <% "gremien" -> %>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Gremium enthält</label>
+                        <input 
+                          type="text" 
+                          name="filter[gr]" 
+                          value={@current_filters["gr"] || ""}
+                          placeholder="Gremium Name"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Parlament</label>
+                        <select 
+                          name="filter[p]" 
+                          value={@current_filters["p"] || ""}
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        >
+                          <option value="">Alle</option>
+                          <option value="BT">Bundestag</option>
+                          <option value="BR">Bundesrat</option>
+                          <option value="BV">Bundesversammlung</option>
+                          <option value="EK">Europakammer des Bundesrats</option>
+                          <option value="BB">Brandenburg</option>
+                          <option value="BY">Bayern</option>
+                          <option value="BE">Berlin</option>
+                          <option value="HB">Hansestadt Bremen</option>
+                          <option value="HH">Hansestadt Hamburg</option>
+                          <option value="HE">Hessen</option>
+                          <option value="MV">Mecklenburg-Vorpommern</option>
+                          <option value="NI">Niedersachsen</option>
+                          <option value="NW">Nordrhein-Westfalen</option>
+                          <option value="RP">Rheinland-Pfalz</option>
+                          <option value="SL">Saarland</option>
+                          <option value="SN">Sachsen</option>
+                          <option value="TH">Thüringen</option>
+                          <option value="SH">Schleswig-Holstein</option>
+                          <option value="BW">Baden-Württemberg</option>
+                          <option value="ST">Sachsen-Anhalt</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Wahlperiode</label>
+                        <input 
+                          type="number" 
+                          name="filter[wp]" 
+                          value={@current_filters["wp"] || ""}
+                          placeholder="z.B. 20"
+                          min="0"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        />
+                      </div>
 
-                  <% _ -> %>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Enthält</label>
-                      <input 
-                        type="text" 
-                        name="filter[contains]" 
-                        value={@current_filters["contains"] || ""}
-                        placeholder="Filter text..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                      />
-                    </div>
-                <% end %>
+                    <% _ -> %>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Enthält</label>
+                        <input 
+                          type="text" 
+                          name="filter[contains]" 
+                          value={@current_filters["contains"] || ""}
+                          placeholder="Filter text..."
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        />
+                      </div>
+                      <div class="mt-2">
+                        <button
+                          type="submit"
+                          disabled={!@current_filters["contains"] || String.trim(@current_filters["contains"] || "") == ""}
+                          class={[
+                            "w-full px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                            if !@current_filters["contains"] || String.trim(@current_filters["contains"] || "") == "" do
+                              "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            else
+                              "bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                            end
+                          ]}
+                          title="Add this value to the enumeration"
+                        >
+                          <div class="flex items-center justify-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            <span>Add Value</span>
+                          </div>
+                        </button>
+                      </div>
+                  <% end %>
+                </div>
               </form>
             </div>
           </div>

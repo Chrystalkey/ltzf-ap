@@ -55,7 +55,14 @@ On the panels the number of elements should be displayed.
 TODO; Insert empty placeholder page
 
 ### Vorgänge
-TODO; Insert empty placeholder page
+#### Listing Page
+TODO
+#### Detail Page
+Looking at the vorgang listing, I would like to implement the detail pages with editing functionality.
+
+All data (except stationen) should be display extremely compactly on top, the stationen should be a foldable list with the zp_start, the type and the Gremium displayed even when folded.
+
+Three buttons on top: Undo (reset last editing action) reset (reload data from server) and submit changes (PUT by id)
 
 ### Sitzungen
 TODO; Insert empty placeholder page

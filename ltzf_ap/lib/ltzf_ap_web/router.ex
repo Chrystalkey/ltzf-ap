@@ -22,6 +22,7 @@ defmodule LtzfApWeb.Router do
     live "/dashboard", DashboardLive
     live "/key-management", KeyManagementLive
     live "/vorgaenge", VorgaengeLive
+    live "/vorgaenge/:id", VorgangDetailLive
     live "/sitzungen", SitzungenLive
     live "/enumerations", EnumerationsLive
   end

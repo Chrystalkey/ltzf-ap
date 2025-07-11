@@ -109,14 +109,14 @@ const ApiHook = {
   
   // Execute API request based on method name
   async executeApiRequest(data) {
-    const { method, params = [] } = data;
+    const { method, params = {} } = data;
     
     if (!this.apiClient || typeof this.apiClient[method] !== 'function') {
       throw new Error(`Unknown API method: ${method}`);
     }
     
     // Check cache first for GET requests
-    if (method.startsWith('get') && params.length === 0) {
+    if (method.startsWith('get') && Object.keys(params).length === 0) {
       const cacheKey = `${method}_${JSON.stringify(params)}`;
       const cached = this.dataStore.get(cacheKey);
       if (cached) {
@@ -126,7 +126,47 @@ const ApiHook = {
     
     // Execute the API call
     let result;
-    if (Array.isArray(params) && params.length === 0) {
+    if (method === 'getVorgangById') {
+      result = await this.apiClient[method](params.id);
+    } else if (method === 'putVorgangById') {
+      result = await this.apiClient[method](params.id, params.data);
+    } else if (method === 'getEnumerations') {
+      // Handle both array format [enumName, filters] and object format {enumName, ...}
+      if (Array.isArray(params) && params.length >= 1) {
+        const enumName = params[0];
+        const filters = params[1] || {};
+        result = await this.apiClient[method](enumName, filters);
+      } else {
+        result = await this.apiClient[method](params.enumName, params);
+      }
+    } else if (method === 'getAutoren' || method === 'getGremien') {
+      // Handle array format [filters] for autoren and gremien
+      if (Array.isArray(params) && params.length >= 1) {
+        const filters = params[0] || {};
+        result = await this.apiClient[method](filters);
+      } else {
+        result = await this.apiClient[method](params);
+      }
+    } else if (method === 'updateEnumeration') {
+      // Handle array format [enumName, values, replacing] for updateEnumeration
+      if (Array.isArray(params) && params.length >= 2) {
+        const enumName = params[0];
+        const values = params[1];
+        const replacing = params[2] || [];
+        result = await this.apiClient[method](enumName, values, replacing);
+      } else {
+        result = await this.apiClient[method](params.enumName, params.values, params.replacing);
+      }
+    } else if (method === 'deleteEnumerationValue') {
+      // Handle array format [enumName, value] for deleteEnumerationValue
+      if (Array.isArray(params) && params.length >= 2) {
+        const enumName = params[0];
+        const value = params[1];
+        result = await this.apiClient[method](enumName, value);
+      } else {
+        result = await this.apiClient[method](params.enumName, params.value);
+      }
+    } else if (Array.isArray(params) && params.length === 0) {
       // No parameters, call method directly
       result = await this.apiClient[method]();
     } else if (Array.isArray(params)) {
@@ -136,7 +176,7 @@ const ApiHook = {
     }
     
     // Cache GET requests
-    if (method.startsWith('get') && params.length === 0) {
+    if (method.startsWith('get') && Object.keys(params).length === 0) {
       const cacheKey = `${method}_${JSON.stringify(params)}`;
       this.dataStore.set(cacheKey, result);
     }

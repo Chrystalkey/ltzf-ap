@@ -35,8 +35,8 @@ class ApiClient {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      // Handle empty responses (204 No Content)
-      if (response.status === 204) {
+      // Handle empty responses (204 No Content and 201 Created)
+      if (response.status === 204 || response.status === 201) {
         return { data: null, headers: this.extractHeaders(response.headers) };
       }
       
@@ -141,12 +141,12 @@ class ApiClient {
   async loadEnumerations() {
     try {
       const enumNames = [
-        'vgtyp',
-        'parlament', 
-        'wahlperiode',
-        'autor_typ',
-        'gremium_typ',
-        'dokument_typ'
+        'schlagworte',
+        'stationstypen',
+        'vorgangstypen',
+        'parlamente',
+        'vgidtypen',
+        'dokumententypen'
       ];
       
       const results = await Promise.all(
@@ -216,6 +216,14 @@ class ApiClient {
   
   async getVorgangById(id) {
     const response = await this.request(`/api/v1/vorgang/${id}`);
+    return response.data;
+  }
+  
+  async putVorgangById(id, vorgangData) {
+    const response = await this.request(`/api/v1/vorgang/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(vorgangData)
+    });
     return response.data;
   }
   

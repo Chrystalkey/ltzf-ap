@@ -30,7 +30,7 @@ import "./data_store.js"
 // Import LiveView hooks
 import ApiHook from "./hooks/api_hook.js"
 import LoginHook from "./hooks/login_hook.js"
-
+import AddValueHook from "./hooks/add_value_hook.js"
 
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
@@ -39,7 +39,8 @@ let liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
   hooks: {
     ApiHook,
-    LoginHook
+    LoginHook,
+    AddValueHook
   }
 })
 
