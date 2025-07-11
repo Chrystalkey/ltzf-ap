@@ -229,4 +229,153 @@ defmodule LtzfAp.ApiClient do
     |> Enum.map(fn {key, value} -> "#{key}=#{URI.encode_www_form(to_string(value))}" end)
     |> Enum.join("&")
   end
+
+  def update_enumeration(backend_url, api_key, enum_name, values) do
+    url = "#{backend_url}/api/v1/enumeration/#{enum_name}"
+    headers = [
+      {"X-API-Key", api_key},
+      {"Content-Type", "application/json"},
+      {"X-Scraper-Id", "00000000-0000-0000-0000-000000000000"}
+    ]
+
+    # According to OpenAPI spec: object with required "objects" array and optional "replacing" array
+    body = %{
+      objects: values,
+      replacing: []
+    }
+
+    case Finch.build(:put, url, headers, Jason.encode!(body)) |> Finch.request(@finch_name) do
+      {:ok, %{status: 201}} ->
+        {:ok, :updated}
+      {:ok, %{status: 403}} ->
+        {:error, :forbidden}
+      {:ok, %{status: 400}} ->
+        {:error, :bad_request}
+      {:ok, %{status: status}} ->
+        {:error, "HTTP #{status}"}
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def update_enumeration_with_replacing(backend_url, api_key, enum_name, values, replacing) do
+    url = "#{backend_url}/api/v1/enumeration/#{enum_name}"
+    headers = [
+      {"X-API-Key", api_key},
+      {"Content-Type", "application/json"},
+      {"X-Scraper-Id", "00000000-0000-0000-0000-000000000000"}
+    ]
+
+    # According to OpenAPI spec: object with required "objects" array and optional "replacing" array
+    body = %{
+      objects: values,
+      replacing: replacing
+    }
+
+    case Finch.build(:put, url, headers, Jason.encode!(body)) |> Finch.request(@finch_name) do
+      {:ok, %{status: 201}} ->
+        {:ok, :updated}
+      {:ok, %{status: 403}} ->
+        {:error, :forbidden}
+      {:ok, %{status: 400}} ->
+        {:error, :bad_request}
+      {:ok, %{status: status}} ->
+        {:error, "HTTP #{status}"}
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def delete_enumeration_value(backend_url, api_key, enum_name, value) do
+    # Ensure proper URL encoding for the value
+    encoded_value = URI.encode_www_form(value)
+
+    # Ensure backend_url doesn't have trailing slash
+    clean_backend_url = String.trim_trailing(backend_url, "/")
+    url = "#{clean_backend_url}/api/v1/enumeration/#{enum_name}/#{encoded_value}"
+
+    headers = [
+      {"X-API-Key", api_key},
+      {"X-Scraper-Id", "00000000-0000-0000-0000-000000000000"}
+    ]
+
+    case Finch.build(:delete, url, headers) |> Finch.request(@finch_name) do
+      {:ok, %{status: 204}} ->
+        {:ok, :deleted}
+      {:ok, %{status: 403}} ->
+        {:error, :forbidden}
+      {:ok, %{status: status}} ->
+        {:error, "HTTP #{status}"}
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def update_autoren(backend_url, api_key, autoren_data) do
+    url = "#{backend_url}/api/v1/autoren"
+    headers = [{"X-API-Key", api_key}, {"Content-Type", "application/json"}]
+
+    body = %{
+      objects: autoren_data.objects,
+      replacing: autoren_data.replacing || []
+    }
+
+    case Finch.build(:put, url, headers, Jason.encode!(body)) |> Finch.request(@finch_name) do
+      {:ok, %{status: 201}} -> {:ok, :updated}
+      {:ok, %{status: 403}} -> {:error, :forbidden}
+      {:ok, %{status: 400}} -> {:error, :bad_request}
+      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def update_gremien(backend_url, api_key, gremien_data) do
+    url = "#{backend_url}/api/v1/gremien"
+    headers = [{"X-API-Key", api_key}, {"Content-Type", "application/json"}]
+
+    body = %{
+      objects: gremien_data.objects,
+      replacing: gremien_data.replacing || []
+    }
+
+    case Finch.build(:put, url, headers, Jason.encode!(body)) |> Finch.request(@finch_name) do
+      {:ok, %{status: 201}} -> {:ok, :updated}
+      {:ok, %{status: 403}} -> {:error, :forbidden}
+      {:ok, %{status: 400}} -> {:error, :bad_request}
+      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def delete_autoren_by_params(backend_url, api_key, params) do
+    url = "#{backend_url}/api/v1/autoren"
+    headers = [{"X-API-Key", api_key}]
+
+    query_string = build_query_string(params)
+    full_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
+
+    case Finch.build(:delete, full_url, headers) |> Finch.request(@finch_name) do
+      {:ok, %{status: 204}} -> {:ok, :deleted}
+      {:ok, %{status: 304}} -> {:ok, :not_modified}  # Items already deleted or don't exist
+      {:ok, %{status: 403}} -> {:error, :forbidden}
+      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def delete_gremien_by_params(backend_url, api_key, params) do
+    url = "#{backend_url}/api/v1/gremien"
+    headers = [{"X-API-Key", api_key}]
+
+    query_string = build_query_string(params)
+    full_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
+
+    case Finch.build(:delete, full_url, headers) |> Finch.request(@finch_name) do
+      {:ok, %{status: 204}} -> {:ok, :deleted}
+      {:ok, %{status: 304}} -> {:ok, :not_modified}  # Items already deleted or don't exist
+      {:ok, %{status: 403}} -> {:error, :forbidden}
+      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 end

@@ -97,9 +97,6 @@ defmodule LtzfApWeb.SitzungenLive do
   end
 
   def handle_event("edit_session", %{"session-id" => session_id}, socket) do
-    # For now, just log the session ID. You can implement the edit functionality later
-    IO.puts("Edit session: #{session_id}")
-
     # You could redirect to an edit page or open a modal here
     # For example:
     # {:noreply, redirect(socket, to: ~p"/sitzungen/#{session_id}/edit")}

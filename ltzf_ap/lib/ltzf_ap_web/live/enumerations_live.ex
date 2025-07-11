@@ -22,7 +22,7 @@ defmodule LtzfApWeb.EnumerationsLive do
     "gremien"
   ]
 
-  def mount(%{"s" => session_id} = _params, _session, socket) do
+      def mount(%{"s" => session_id} = _params, _session, socket) do
     case SharedLiveHelpers.mount_with_session(session_id, socket, enumeration_assigns()) do
       {:ok, socket} ->
         {:ok, socket}
@@ -169,13 +169,173 @@ defmodule LtzfApWeb.EnumerationsLive do
   end
 
   def handle_event("merge_items", _params, socket) do
-    # TODO: Implement merge functionality
-    {:noreply, socket}
+    if length(socket.assigns.selected_items) >= 2 do
+      # Enter merge mode to get the replacement value from user
+      {:noreply,
+        socket
+        |> assign(:merge_mode, true)
+        |> assign(:merge_replacement_value, "")
+      }
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("confirm_merge", _params, socket) do
+    if socket.assigns.merge_replacement_value != "" do
+      items_to_merge = socket.assigns.selected_items
+
+      case socket.assigns.selected_enumeration do
+        enum_name when enum_name in @simple_enumerations ->
+          # For simple enumerations, use the replacing field to properly merge
+          current_values = socket.assigns.values
+
+          # Remove the selected items from the current values
+          updated_values = Enum.reject(current_values, fn value -> value in items_to_merge end)
+
+          # Add the replacement value to the beginning of the objects array
+          # (so it gets index 0)
+          final_values = [socket.assigns.merge_replacement_value | updated_values]
+
+          # Create the replacing array to tell the backend which old values
+          # should be replaced by the new value (at index 0)
+          replacing = [
+            %{
+              values: items_to_merge,
+              replaced_by: 0
+            }
+          ]
+
+          case LtzfAp.ApiClient.update_enumeration_with_replacing(
+            socket.assigns.backend_url,
+            socket.assigns.session_data.api_key,
+            enum_name,
+            final_values,
+            replacing
+          ) do
+            {:ok, :updated} ->
+              {:noreply,
+                socket
+                |> assign(:values, final_values)
+                |> assign(:selected_items, [])
+                |> assign(:merge_mode, false)
+                |> assign(:merge_replacement_value, "")
+                |> put_flash(:info, "Items successfully merged into '#{socket.assigns.merge_replacement_value}'")
+              }
+            {:error, error} ->
+              {:noreply,
+                socket
+                |> put_flash(:error, "Failed to merge items: #{error}")
+              }
+          end
+
+        "autoren" ->
+          handle_merge_autoren_with_replacement(socket, items_to_merge, socket.assigns.merge_replacement_value)
+
+        "gremien" ->
+          handle_merge_gremien_with_replacement(socket, items_to_merge, socket.assigns.merge_replacement_value)
+
+        _ ->
+          {:noreply, socket}
+      end
+    else
+      {:noreply,
+        socket
+        |> put_flash(:error, "Please enter a replacement value")
+      }
+    end
+  end
+
+  def handle_event("cancel_merge", _params, socket) do
+    {:noreply,
+      socket
+      |> assign(:merge_mode, false)
+      |> assign(:merge_replacement_value, "")
+    }
+  end
+
+  def handle_event("update_merge_value", %{"value" => value}, socket) do
+    {:noreply, assign(socket, :merge_replacement_value, value)}
+  end
+
+  def handle_event("update_merge_value", params, socket) do
+    # Handle the case where the value comes from the input field
+    value = params["value"] || ""
+    {:noreply, assign(socket, :merge_replacement_value, value)}
   end
 
   def handle_event("delete_items", _params, socket) do
-    # TODO: Implement delete functionality
-    {:noreply, socket}
+    if length(socket.assigns.selected_items) > 0 do
+      case socket.assigns.selected_enumeration do
+        enum_name when enum_name in @simple_enumerations ->
+          # For simple enumerations, use the DELETE endpoint for each selected item
+          selected_items = socket.assigns.selected_items
+
+          # Delete each selected item individually using the DELETE endpoint
+          results = Enum.map(selected_items, fn item ->
+            LtzfAp.ApiClient.delete_enumeration_value(
+              socket.assigns.backend_url,
+              socket.assigns.session_data.api_key,
+              enum_name,
+              item
+            )
+          end)
+
+          # Check if all deletions were successful
+          case Enum.find(results, fn result ->
+            case result do
+              {:ok, :deleted} -> false
+              _ -> true
+            end
+          end) do
+            nil ->
+              # All deletions successful
+              updated_values = Enum.reject(socket.assigns.values, fn value ->
+                value in selected_items
+              end)
+
+              {:noreply,
+                socket
+                |> assign(:values, updated_values)
+                |> assign(:selected_items, [])
+                |> put_flash(:info, "Items successfully deleted")
+              }
+
+            {:error, error} ->
+              {:noreply,
+                socket
+                |> put_flash(:error, "Failed to delete some items: #{error}")
+              }
+          end
+
+        "autoren" ->
+          handle_delete_autoren(socket)
+
+        "gremien" ->
+          handle_delete_gremien(socket)
+
+        _ ->
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("edit_item", %{"item" => item_id}, socket) do
+    # Find the actual item by its ID
+    actual_item = find_item_by_id(socket.assigns.values, item_id, socket.assigns.selected_enumeration)
+
+    if actual_item do
+      # For now, we'll just show a flash message
+      # In a real implementation, you might want to open a modal or navigate to an edit page
+      {:noreply,
+        socket
+        |> put_flash(:info, "Edit functionality for #{socket.assigns.selected_enumeration} would open here")
+      }
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("save_changes", _params, socket) do
@@ -191,7 +351,9 @@ defmodule LtzfApWeb.EnumerationsLive do
       loading_values: false,
       loading_more: false,
       current_filters: %{},
-      enumeration_pagination: %{current_page: 1, per_page: 32, has_more: false, total_count: nil}
+      enumeration_pagination: %{current_page: 1, per_page: 32, has_more: false, total_count: nil},
+      merge_mode: false,
+      merge_replacement_value: ""
     }
   end
 
@@ -302,35 +464,261 @@ defmodule LtzfApWeb.EnumerationsLive do
     "#{gremium["name"]} (#{gremium["parlament"]}, WP #{gremium["wahlperiode"]})"
   end
 
+  defp get_item_id(value, enumeration_type) do
+    case enumeration_type do
+      "autoren" ->
+        # For autoren, create a unique ID based on person and organization
+        person = Map.get(value, "person", "")
+        org = Map.get(value, "organisation", "")
+        "#{person}_#{org}"
+
+      "gremien" ->
+        # For gremien, create a unique ID based on parlament, wahlperiode, and name
+        parlament = Map.get(value, "parlament", "")
+        wahlperiode = Map.get(value, "wahlperiode", "")
+        name = Map.get(value, "name", "")
+        "#{parlament}_#{wahlperiode}_#{name}"
+
+      _ ->
+        # For simple enumerations, use the value itself
+        value
+    end
+  end
+
   defp find_item_by_id(values, item_id, enumeration_type) do
     Enum.find(values, fn value ->
       get_item_id(value, enumeration_type) == item_id
     end)
   end
 
-  defp get_item_id(value, enumeration_type) do
-    case enumeration_type do
-      "autoren" ->
-        # Create a unique ID for autoren based on person, organisation, and fachgebiet
-        person = value["person"] || ""
-        org = value["organisation"] || ""
-        fach = value["fachgebiet"] || ""
-        "#{person}|#{org}|#{fach}"
+  def get_item_id_for_display(value, enumeration_type) do
+    get_item_id(value, enumeration_type)
+  end
 
-      "gremien" ->
-        # Create a unique ID for gremien based on name, parlament, and wahlperiode
-        name = value["name"] || ""
-        parlament = value["parlament"] || ""
-        wahlperiode = value["wahlperiode"] || ""
-        "#{name}|#{parlament}|#{wahlperiode}"
+  defp handle_delete_autoren(socket) do
+    # For autoren, we need to build parameters to match the selected items
+    # This is a simplified approach - in practice you might want more sophisticated matching
+    selected_items = socket.assigns.selected_items
 
+    # For now, we'll delete by organization if available, otherwise by person
+    delete_params = case List.first(selected_items) do
+      %{"organisation" => org} when org != nil and org != "" ->
+        [org: org]
+      %{"person" => person} when person != nil and person != "" ->
+        [person: person]
       _ ->
-        # For simple enumerations, the value itself is the ID
-        value
+        []
+    end
+
+    if delete_params != [] do
+      case LtzfAp.ApiClient.delete_autoren_by_params(
+        socket.assigns.backend_url,
+        socket.assigns.session_data.api_key,
+        delete_params
+      ) do
+        {:ok, :deleted} ->
+          # Reload the values
+          reload_enumeration_values(socket, "autoren")
+        {:ok, :not_modified} ->
+          # Items already deleted or don't exist, reload to refresh the view
+          reload_enumeration_values(socket, "autoren")
+        {:error, error} ->
+          {:noreply,
+            socket
+            |> put_flash(:error, "Failed to delete autoren: #{error}")
+          }
+      end
+    else
+      {:noreply,
+        socket
+        |> put_flash(:error, "Cannot determine deletion criteria for selected autoren")
+      }
     end
   end
 
-  def get_item_id_for_display(value, enumeration_type) do
-    get_item_id(value, enumeration_type)
+  defp handle_delete_gremien(socket) do
+    # For gremien, we need to build parameters to match the selected items
+    selected_items = socket.assigns.selected_items
+
+    # For now, we'll delete by name if available
+    delete_params = case List.first(selected_items) do
+      %{"name" => name} when name != nil and name != "" ->
+        [gr: name]
+      _ ->
+        []
+    end
+
+    if delete_params != [] do
+      case LtzfAp.ApiClient.delete_gremien_by_params(
+        socket.assigns.backend_url,
+        socket.assigns.session_data.api_key,
+        delete_params
+      ) do
+        {:ok, :deleted} ->
+          # Reload the values
+          reload_enumeration_values(socket, "gremien")
+        {:ok, :not_modified} ->
+          # Items already deleted or don't exist, reload to refresh the view
+          reload_enumeration_values(socket, "gremien")
+        {:error, error} ->
+          {:noreply,
+            socket
+            |> put_flash(:error, "Failed to delete gremien: #{error}")
+          }
+      end
+    else
+      {:noreply,
+        socket
+        |> put_flash(:error, "Cannot determine deletion criteria for selected gremien")
+      }
+    end
+  end
+
+  defp reload_enumeration_values(socket, enum_name) do
+    socket = assign(socket, :loading_values, true)
+    case load_enumeration_values(socket.assigns.backend_url, socket.assigns.session_data.api_key, enum_name, %{page: 1, per_page: 32}) do
+      {:ok, values, headers} ->
+        pagination = extract_enumeration_pagination(headers)
+        {:noreply,
+          socket
+          |> assign(:values, values)
+          |> assign(:loading_values, false)
+          |> assign(:selected_items, [])
+          |> assign(:enumeration_pagination, pagination)
+          |> put_flash(:info, "Items successfully deleted")
+        }
+      {:error, error} ->
+        {:noreply,
+          socket
+          |> assign(:loading_values, false)
+          |> put_flash(:error, "Failed to reload values: #{error}")
+        }
+    end
+  end
+
+  defp handle_merge_autoren_with_replacement(socket, items_to_merge, replacement_value) do
+    # For autoren, we need to create a new autor object with the replacement value
+    # and use the replacing field to tell the backend which old values should be replaced
+    current_values = socket.assigns.values
+    updated_values = Enum.reject(current_values, fn value -> value in items_to_merge end)
+
+    # Create a new autor object with the replacement value as organization
+    new_autor = %{
+      "organisation" => replacement_value,
+      "person" => "",
+      "fachgebiet" => ""
+    }
+
+    # Add the new autor to the beginning of the objects array (so it gets index 0)
+    final_values = [new_autor | updated_values]
+
+    # Create the replacing array to tell the backend which old values
+    # should be replaced by the new value (at index 0)
+    replacing = [
+      %{
+        values: items_to_merge,
+        replaced_by: 0
+      }
+    ]
+
+    autoren_data = %{
+      objects: final_values,
+      replacing: replacing
+    }
+
+    case LtzfAp.ApiClient.update_autoren(
+      socket.assigns.backend_url,
+      socket.assigns.session_data.api_key,
+      autoren_data
+    ) do
+      {:ok, :updated} ->
+        {:noreply,
+          socket
+          |> assign(:values, final_values)
+          |> assign(:selected_items, [])
+          |> assign(:merge_mode, false)
+          |> assign(:merge_replacement_value, "")
+          |> put_flash(:info, "Autoren successfully merged into '#{replacement_value}'")
+        }
+      {:error, error} ->
+        {:noreply,
+          socket
+          |> put_flash(:error, "Failed to merge autoren: #{error}")
+        }
+    end
+  end
+
+  defp handle_merge_gremien_with_replacement(socket, items_to_merge, replacement_value) do
+    # For gremien, we need to create a new gremium object with the replacement value
+    # and use the replacing field to tell the backend which old values should be replaced
+    current_values = socket.assigns.values
+    updated_values = Enum.reject(current_values, fn value -> value in items_to_merge end)
+
+    # Create a new gremium object with the replacement value as name
+    # We'll use the first item's parlament and wahlperiode as defaults
+    first_item = List.first(items_to_merge)
+    new_gremium = %{
+      "name" => replacement_value,
+      "parlament" => Map.get(first_item, "parlament", "BT"),
+      "wahlperiode" => Map.get(first_item, "wahlperiode", 20)
+    }
+
+    # Add the new gremium to the beginning of the objects array (so it gets index 0)
+    final_values = [new_gremium | updated_values]
+
+    # Create the replacing array to tell the backend which old values
+    # should be replaced by the new value (at index 0)
+    replacing = [
+      %{
+        values: items_to_merge,
+        replaced_by: 0
+      }
+    ]
+
+    gremien_data = %{
+      objects: final_values,
+      replacing: replacing
+    }
+
+    case LtzfAp.ApiClient.update_gremien(
+      socket.assigns.backend_url,
+      socket.assigns.session_data.api_key,
+      gremien_data
+    ) do
+      {:ok, :updated} ->
+        {:noreply,
+          socket
+          |> assign(:values, final_values)
+          |> assign(:selected_items, [])
+          |> assign(:merge_mode, false)
+          |> assign(:merge_replacement_value, "")
+          |> put_flash(:info, "Gremien successfully merged into '#{replacement_value}'")
+        }
+      {:error, error} ->
+        {:noreply,
+          socket
+          |> put_flash(:error, "Failed to merge gremien: #{error}")
+        }
+    end
+  end
+
+  defp format_selected_items_for_display(selected_items, enumeration_type) do
+    selected_items
+    |> Enum.take(3)
+    |> Enum.map(fn item ->
+      case enumeration_type do
+        "autoren" ->
+          person = Map.get(item, "person", "")
+          org = Map.get(item, "organisation", "")
+          if person != "", do: person, else: org
+        "gremien" ->
+          name = Map.get(item, "name", "")
+          parlament = Map.get(item, "parlament", "")
+          "#{name} (#{parlament})"
+        _ ->
+          item
+      end
+    end)
+    |> Enum.join(", ")
   end
 end
