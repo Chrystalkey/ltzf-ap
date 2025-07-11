@@ -3,6 +3,11 @@
 
 const ApiHook = {
   mounted() {
+    console.log("ApiHook: mounted() called");
+    console.log("ApiHook: this.el =", this.el);
+    console.log("ApiHook: this.pushEvent =", typeof this.pushEvent);
+    console.log("ApiHook: this.handleEvent =", typeof this.handleEvent);
+    
     this.apiClient = null;
     this.authManager = new AuthManager();
     this.dataStore = new DataStore();
@@ -11,21 +16,32 @@ const ApiHook = {
     // Initialize API client if credentials are available
     this.initializeApiClient();
     
+    // Test event handler to see if events are being received
+    this.handleEvent("test", (data) => {
+      console.log("ApiHook: received test event", data);
+    });
+
     // Handle API requests from LiveView
+    console.log("ApiHook: registering api_request handler");
     this.handleEvent("api_request", async (data) => {
+      console.log("ApiHook: received api_request", data);
       try {
         if (!this.apiClient) {
+          console.error("ApiHook: API client not initialized");
           throw new Error("API client not initialized");
         }
         
+        console.log("ApiHook: executing API request", data.method, data.params);
         const result = await this.executeApiRequest(data);
+        console.log("ApiHook: API request successful", data.request_id, result);
         this.pushEvent("api_response", { 
           request_id: data.request_id || data.id, 
           result,
           success: true 
         });
       } catch (error) {
-        this.pushEvent("api_error", { 
+        console.error("ApiHook: API request failed", data.request_id, error);
+        this.pushEvent("api_response", { 
           request_id: data.request_id || data.id, 
           error: error.message,
           success: false 
@@ -100,9 +116,29 @@ const ApiHook = {
       this.apiClient = null;
       this.pushEvent("logout_complete", {});
     });
+
+    // Handle scrolling to newly added stations
+    this.handleEvent("scroll_to_station", (data) => {
+      const { index } = data;
+      const stationElement = document.getElementById(`station-${index}`);
+      if (stationElement) {
+        // Smooth scroll to the station
+        stationElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Add a subtle pulse animation
+        stationElement.style.animation = 'pulse 2s ease-in-out';
+        setTimeout(() => {
+          stationElement.style.animation = '';
+        }, 2000);
+      }
+    });
   },
   
   destroyed() {
+    console.log("ApiHook: destroyed() called");
     // Cleanup any ongoing operations
     this.dataStore.clear();
   },
@@ -110,6 +146,9 @@ const ApiHook = {
   // Execute API request based on method name
   async executeApiRequest(data) {
     const { method, params = {} } = data;
+    
+    console.log("ApiHook: executeApiRequest", method, params);
+    console.log("ApiHook: apiClient methods", Object.getOwnPropertyNames(Object.getPrototypeOf(this.apiClient)));
     
     if (!this.apiClient || typeof this.apiClient[method] !== 'function') {
       throw new Error(`Unknown API method: ${method}`);
@@ -127,9 +166,14 @@ const ApiHook = {
     // Execute the API call
     let result;
     if (method === 'getVorgangById') {
+      console.log("ApiHook: calling getVorgangById with id", params.id);
       result = await this.apiClient[method](params.id);
     } else if (method === 'putVorgangById') {
+      console.log("ApiHook: calling putVorgangById with id", params.id);
       result = await this.apiClient[method](params.id, params.data);
+    } else if (method === 'loadEnumerations') {
+      console.log("ApiHook: calling loadEnumerations");
+      result = await this.apiClient[method]();
     } else if (method === 'getEnumerations') {
       // Handle both array format [enumName, filters] and object format {enumName, ...}
       if (Array.isArray(params) && params.length >= 1) {

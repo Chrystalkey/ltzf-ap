@@ -7,7 +7,7 @@ defmodule LtzfApWeb.TemplateHelpers do
 
   # Safe list iteration with fallback
   def safe_list(list, fallback \\ [])
-  def safe_list(list, fallback) when is_list(list), do: list
+  def safe_list(list, _fallback) when is_list(list), do: list
   def safe_list(_, fallback), do: fallback
 
   # Safe map access with fallback

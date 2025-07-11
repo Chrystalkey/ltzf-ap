@@ -31,6 +31,7 @@ import "./data_store.js"
 import ApiHook from "./hooks/api_hook.js"
 import LoginHook from "./hooks/login_hook.js"
 import AddValueHook from "./hooks/add_value_hook.js"
+import EditFieldHook from "./hooks/edit_field_hook.js"
 
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
@@ -40,7 +41,8 @@ let liveSocket = new LiveSocket("/live", Socket, {
   hooks: {
     ApiHook,
     LoginHook,
-    AddValueHook
+    AddValueHook,
+    EditFieldHook
   }
 })
 
@@ -53,12 +55,6 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()
-
-// expose liveSocket on window for web console debug logs and latency simulation:
-// >> liveSocket.enableDebug()
-// >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
-// >> liveSocket.disableLatencySim()
-window.liveSocket = liveSocket
 
 // Expose client-side modules globally for debugging
 window.ApiClient = ApiClient;

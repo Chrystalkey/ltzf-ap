@@ -1,4 +1,4 @@
-<div id="vorgang-detail-container" class="min-h-screen bg-gray-50" phx-hook="ApiHook">
+<div id="vorgang-detail" class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" phx-hook="ApiHook">
   <!-- Modern Header -->
   <.app_header 
     subtitle="Vorgang Details"
@@ -7,865 +7,858 @@
     session_data={@session_data}
   />
 
-  <!-- Main Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <!-- Back Button -->
-    <div class="mb-8">
-      <a href="/vorgaenge" class="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors duration-200 font-medium">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-        Zurück zu Vorgängen
-      </a>
+    <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Page Header -->
+    <div class="flex justify-between items-center mb-6">
+      <div class="flex items-center space-x-4">
+        <a href="/vorgaenge" class="inline-flex items-center text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Zurück zu Vorgängen
+        </a>
+        <h1 class="text-2xl font-bold text-slate-900">Vorgang <%= @vorgang_id %></h1>
+      </div>
     </div>
 
     <!-- Loading State -->
     <%= if @loading do %>
       <.loading_state message="Lade Vorgang..." />
-    <% end %>
+    <% else %>
+      <!-- Error State -->
+      <%= if @error do %>
+        <.error_state title="Fehler beim Laden des Vorgangs" message={@error} />
+      <% end %>
 
-    <!-- Error State -->
-    <%= if @error do %>
-      <.error_state title="Fehler beim Laden des Vorgangs" message={@error} />
-    <% end %>
-
-    <!-- Vorgang Content -->
-    <%= if @vorgang do %>
-      <!-- Action Buttons -->
-      <div class="bg-white shadow-sm border border-gray-200 rounded-xl p-6 mb-8">
-        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
-          <%= if @editing_page_title do %>
-            <div class="flex items-center space-x-3">
-              <input 
-                type="text" 
-                value={@editing_page_title.value} 
-                phx-blur="save_page_title" 
-                phx-keyup="save_page_title" 
-                phx-value-key="Enter"
-                class="text-3xl font-bold text-gray-900 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-700 transition-colors duration-200"
-                autofocus
-              >
-              <button 
-                phx-click="save_page_title" 
-                class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1 rounded"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-              </button>
-              <button 
-                phx-click="cancel_page_title_edit" 
-                class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1 rounded"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-          <% else %>
-            <h1 class="text-3xl font-bold text-gray-900 flex items-center space-x-3">
-              <span><%= @vorgang["titel"] || "Vorgang #{@vorgang_id}" %></span>
-              <button 
-                phx-click="edit_page_title" 
-                class="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 rounded hover:bg-gray-100"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-              </button>
-            </h1>
-          <% end %>
+      <!-- Vorgang Content -->
+      <%= if @vorgang do %>
+        <!-- Action Buttons -->
+        <div class="bg-white shadow rounded-lg p-4 mb-4">
           <div class="flex flex-wrap gap-3">
             <button 
               phx-click="undo" 
-              disabled={!@vorgang || !can_undo(@socket)}
-              class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              disabled={!has_changes?(assigns)}
+              class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
               </svg>
-              <span>Rückgängig</span>
+              Rückgängig
             </button>
             <button 
               phx-click="reset" 
-              disabled={!@vorgang || !has_changes(@socket)}
-              class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              disabled={!has_changes?(assigns)}
+              class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
               </svg>
-              <span>Zurücksetzen</span>
+              Zurücksetzen
             </button>
             <button 
-              phx-click="submit" 
-              disabled={!@vorgang || !has_changes(@socket)}
-              class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2 shadow-sm"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span>Änderungen speichern</span>
+              phx-click="save" 
+              disabled={!has_changes?(assigns) || @saving}
+              class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-blue-600 border border-transparent rounded-lg hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm">
+              <%= if @saving do %>
+                <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Speichere...
+              <% else %>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Speichern
+              <% end %>
             </button>
           </div>
+          
+          <!-- Save Status Messages -->
+          <%= if @saving do %>
+            <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-sm text-blue-700">Änderungen werden gespeichert...</span>
+              </div>
+            </div>
+          <% end %>
+          
+          <%= if @save_success do %>
+            <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+              <div class="flex items-center">
+                <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="text-sm text-green-700">Änderungen erfolgreich gespeichert!</span>
+              </div>
+            </div>
+          <% end %>
+          
+          <%= if @error && !@saving do %>
+            <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div class="flex items-center">
+                <svg class="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-sm text-red-700"><%= @error %></span>
+              </div>
+            </div>
+          <% end %>
         </div>
-      </div>
 
-      <!-- Compact Data Display -->
-      <div class="bg-white shadow-sm border border-gray-200 rounded-xl p-8 mb-8">
-        <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-          <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-          Grunddaten
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <!-- UUID -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">UUID</label>
-            <input 
-              type="text" 
-              value={@vorgang["api_id"]} 
-              readonly 
-              class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono text-gray-500 cursor-not-allowed"
-            >
-          </div>
+        <!-- Info Box with Basic Data -->
+        <div class="bg-white shadow rounded-lg p-4 mb-6">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">Grunddaten</h2>
+          <form phx-change="form_change" phx-submit="save" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Titel *
+              </label>
+              <input 
+                type="text" 
+                name="vorgang[titel]" 
+                value={@vorgang["titel"] || ""} 
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                placeholder="Vollständiger Titel">
+            </div>
 
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Kurztitel
+              </label>
+              <input 
+                type="text" 
+                name="vorgang[kurztitel]" 
+                value={@vorgang["kurztitel"] || ""} 
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                placeholder="Kurzer Titel">
+            </div>
 
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Typ *
+              </label>
+              <select 
+                name="vorgang[typ]" 
+                value={@vorgang["typ"] || ""}
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <option value="">Bitte wählen</option>
+                <%= for typ <- @vorgangstypen do %>
+                  <option value={typ} selected={@vorgang["typ"] == typ}><%= typ %></option>
+                <% end %>
+              </select>
+            </div>
 
-          <!-- Kurztitel -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Kurztitel</label>
-            <%= if @editing_field && @editing_field.field == "kurztitel" do %>
-              <div class="flex items-center space-x-2">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Wahlperiode *
+              </label>
+              <input 
+                type="number" 
+                name="vorgang[wahlperiode]" 
+                value={@vorgang["wahlperiode"] || ""} 
+                required
+                min="0"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                placeholder="z.B. 20">
+            </div>
+
+            <div class="flex items-end">
+              <label class="flex items-center">
                 <input 
-                  type="text" 
-                  value={@editing_field.value} 
-                  phx-blur="save_field" 
-                  phx-keyup="save_field" 
-                  phx-value-key="Enter"
-                  class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                  autofocus
-                >
-                <button 
-                  phx-click="save_field" 
-                  class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-green-50"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                  </svg>
-                </button>
-                <button 
-                  phx-click="cancel_field_edit" 
-                  class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-red-50"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-              </div>
-            <% else %>
-              <div class="flex items-center space-x-2">
-                <span class="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                  <%= @vorgang["kurztitel"] || "" %>
-                </span>
-                <button 
-                  phx-click="edit_field" 
-                  phx-value-field="kurztitel"
-                  class="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1.5 rounded-lg hover:bg-gray-100"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                </button>
-              </div>
-            <% end %>
-          </div>
+                  type="checkbox" 
+                  name="vorgang[verfassungsaendernd]" 
+                  value="true"
+                  checked={@vorgang["verfassungsaendernd"] || false}
+                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                <span class="ml-2 text-sm text-gray-700">Verfassungsändernd</span>
+              </label>
+            </div>
+          </form>
+        </div>
 
-          <!-- Typ -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Typ</label>
-            <select 
-              phx-change="field_change" 
-              phx-value-field="typ"
-              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-            >
-              <option value="">Bitte wählen</option>
-              <%= for typ <- @vorgangstypen do %>
-                <option value={typ} selected={@vorgang["typ"] == typ}><%= typ %></option>
+        <!-- Three-Column Layout for Complex Data -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Left Column: IDs and Links -->
+          <div class="space-y-4">
+            <!-- IDs Section -->
+            <div class="bg-white shadow rounded-lg p-4">
+              <div class="flex justify-between items-center mb-3">
+                <h2 class="text-base font-medium text-gray-900">IDs</h2>
+                <button 
+                  phx-click="add_id" 
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </svg>
+                  Hinzufügen
+                </button>
+              </div>
+
+              <%= if @adding_id do %>
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                  <form phx-submit="save_new_id" class="flex gap-2">
+                    <select 
+                      name="typ"
+                      required
+                      class="flex-1 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <option value="">Typ wählen</option>
+                      <%= for typ <- @vgidtypen do %>
+                        <option value={typ}><%= typ %></option>
+                      <% end %>
+                    </select>
+                    <input 
+                      type="text" 
+                      name="id_value" 
+                      required
+                      placeholder="ID"
+                      class="flex-1 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      OK
+                    </button>
+                    <button type="button" phx-click="cancel_add_id" class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </form>
+                </div>
               <% end %>
-            </select>
+                  
+              <div class="space-y-2">
+                <%= for {id, index} <- Enum.with_index(@vorgang["ids"] || []) do %>
+                  <div class="flex items-center justify-between p-2 bg-gray-50 rounded-md border border-gray-200">
+                    <div class="flex items-center space-x-2">
+                      <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <%= id["typ"] %>
+                      </span>
+                      <span class="text-xs font-mono text-gray-900"><%= id["id"] %></span>
+                    </div>
+                    <button 
+                      phx-click="remove_id" 
+                      phx-value-index={index}
+                      class="inline-flex items-center px-1 py-1 text-xs font-medium text-red-700 bg-red-100 border border-transparent rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+
+            <!-- Links Section -->
+            <div class="bg-white shadow rounded-lg p-4">
+              <div class="flex justify-between items-center mb-3">
+                <h2 class="text-base font-medium text-gray-900">Links</h2>
+                <button 
+                  phx-click="add_link" 
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </svg>
+                  Hinzufügen
+                </button>
+              </div>
+
+              <%= if @adding_link do %>
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                  <form phx-submit="save_new_link" class="flex gap-2">
+                    <input 
+                      type="url" 
+                      name="value" 
+                      required
+                      placeholder="https://..."
+                      class="flex-1 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      OK
+                    </button>
+                    <button type="button" phx-click="cancel_add_link" class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </form>
+                </div>
+              <% end %>
+                  
+              <div class="space-y-2">
+                <%= for {link, index} <- Enum.with_index(@vorgang["links"] || []) do %>
+                  <div class="flex items-center justify-between p-2 bg-gray-50 rounded-md border border-gray-200">
+                    <a href={link} target="_blank" class="text-indigo-600 hover:text-indigo-900 hover:underline flex-1 text-xs truncate">
+                      <%= link %>
+                    </a>
+                    <button 
+                      phx-click="remove_link" 
+                      phx-value-index={index}
+                      class="inline-flex items-center px-1 py-1 text-xs font-medium text-red-700 bg-red-100 border border-transparent rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 ml-2">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </div>
+                <% end %>
+              </div>
+            </div>
           </div>
 
-          <!-- Wahlperiode -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Wahlperiode</label>
-            <input 
-              type="number" 
-              value={@vorgang["wahlperiode"] || ""} 
-              phx-blur="field_change" 
-              phx-value-field="wahlperiode"
-              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-            >
-          </div>
+          <!-- Middle Column: Initiators -->
+          <div class="space-y-4">
+            <!-- Initiators Section -->
+            <div class="bg-white shadow rounded-lg p-4">
+              <div class="flex justify-between items-center mb-3">
+                <h2 class="text-base font-medium text-gray-900">Initiatoren *</h2>
+                <button 
+                  phx-click="add_initiator" 
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </svg>
+                  Hinzufügen
+                </button>
+              </div>
 
-          <!-- Verfassungsändernd -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Verfassungsändernd</label>
-            <select 
-              value={if @vorgang["verfassungsaendernd"], do: "true", else: "false"} 
-              phx-change="field_change" 
-              phx-value-field="verfassungsaendernd"
-              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-            >
-              <option value="false">false</option>
-              <option value="true">true</option>
-            </select>
-          </div>
-
-          <!-- IDs -->
-          <div class="lg:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-2">IDs</label>
-            <div class="space-y-3">
-              <%= for {id, index} <- Enum.with_index(@vorgang["ids"] || []) do %>
-                <div class="flex space-x-3">
-                  <select 
-                    value={id["typ"] || ""} 
-                    phx-change="id_field_change" 
-                    phx-value-index={index}
-                    phx-value-field="typ"
-                    class="w-1/3 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                  >
-                    <option value="">Bitte wählen</option>
-                    <%= for vgidtyp <- @vgidtypen do %>
-                      <option value={vgidtyp} selected={id["typ"] == vgidtyp}><%= vgidtyp %></option>
-                    <% end %>
-                  </select>
-                  <%= if @editing_id && @editing_id.index == index do %>
-                    <div class="flex items-center space-x-2 w-2/3">
+              <%= if @adding_initiator do %>
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                  <form phx-submit="save_new_initiator" class="space-y-3">
+                    <div class="grid grid-cols-1 gap-2">
                       <input 
                         type="text" 
-                        value={@editing_id.value} 
-                        phx-blur="save_id_field" 
-                        phx-keyup="save_id_field" 
-                        phx-value-key="Enter"
-                        class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                        autofocus
-                      >
-                      <button 
-                        phx-click="save_id_field" 
-                        class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-green-50"
-                      >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        name="person"
+                        placeholder="Person"
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <input 
+                        type="text" 
+                        name="organisation" 
+                        placeholder="Organisation *"
+                        required
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <input 
+                        type="text" 
+                        name="fachgebiet" 
+                        placeholder="Fachgebiet"
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <input 
+                        type="url" 
+                        name="lobbyregister" 
+                        placeholder="Lobbyregister Link"
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div class="flex gap-2">
+                      <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
+                        OK
                       </button>
-                      <button 
-                        phx-click="cancel_id_edit" 
-                        class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-red-50"
-                      >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <button type="button" phx-click="cancel_add_initiator" class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                       </button>
                     </div>
-                  <% else %>
-                    <div class="flex items-center space-x-2 w-2/3">
-                      <span class="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono text-gray-900">
-                        <%= id["id"] || "" %>
-                      </span>
+                  </form>
+                </div>
+              <% end %>
+
+              <div class="space-y-2">
+                <%= for {initiator, index} <- Enum.with_index(@vorgang["initiatoren"] || []) do %>
+                  <div class="p-3 bg-gray-50 rounded-md border border-gray-200">
+                    <div class="flex justify-between items-start">
+                      <div class="space-y-1">
+                        <%= if initiator["person"] && initiator["person"] != "" do %>
+                          <div class="flex items-center space-x-2">
+                            <span class="text-xs font-medium text-gray-700">Person:</span>
+                            <span class="text-xs text-gray-900"><%= initiator["person"] %></span>
+                          </div>
+                        <% end %>
+                        <%= if initiator["organisation"] && initiator["organisation"] != "" do %>
+                          <div class="flex items-center space-x-2">
+                            <span class="text-xs font-medium text-gray-700">Organisation:</span>
+                            <span class="text-xs text-gray-900"><%= initiator["organisation"] %></span>
+                          </div>
+                        <% end %>
+                        <%= if initiator["fachgebiet"] && initiator["fachgebiet"] != "" do %>
+                          <div class="flex items-center space-x-2">
+                            <span class="text-xs font-medium text-gray-700">Fachgebiet:</span>
+                            <span class="text-xs text-gray-900"><%= initiator["fachgebiet"] %></span>
+                          </div>
+                        <% end %>
+                        <%= if initiator["lobbyregister"] && initiator["lobbyregister"] != "" do %>
+                          <div class="flex items-center space-x-2">
+                            <span class="text-xs font-medium text-gray-700">Lobbyregister:</span>
+                            <a href={initiator["lobbyregister"]} target="_blank" class="text-xs text-indigo-600 hover:text-indigo-900 hover:underline"><%= initiator["lobbyregister"] %></a>
+                          </div>
+                        <% end %>
+                      </div>
                       <button 
-                        phx-click="edit_id_field" 
+                        phx-click="remove_initiator" 
                         phx-value-index={index}
-                        class="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1.5 rounded-lg hover:bg-gray-100"
-                      >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        class="inline-flex items-center px-1 py-1 text-xs font-medium text-red-700 bg-red-100 border border-transparent rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
                       </button>
                     </div>
-                  <% end %>
-                </div>
-              <% end %>
-              
-              <!-- Add new ID -->
-              <%= if @adding_id do %>
-                <form phx-submit="save_new_id" class="flex space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <select 
-                    name="typ"
-                    class="w-1/3 px-3 py-2.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                  >
-                    <option value="">Bitte wählen</option>
-                    <%= for vgidtyp <- @vgidtypen do %>
-                      <option value={vgidtyp}><%= vgidtyp %></option>
-                    <% end %>
-                  </select>
-                  <div class="flex items-center space-x-2 w-2/3">
-                    <input 
-                      type="text" 
-                      name="id"
-                      placeholder="ID Wert eingeben"
-                      class="flex-1 px-3 py-2.5 border border-blue-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                      autofocus
-                    >
-                    <button 
-                      type="submit"
-                      class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-green-50"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                    </button>
-                    <button 
-                      type="button"
-                      phx-click="cancel_add_id" 
-                      class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-red-50"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </form>
-              <% else %>
-                <button 
-                  phx-click="add_id" 
-                  class="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                  </svg>
-                  <span>Neue ID hinzufügen</span>
-                </button>
-              <% end %>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Two Column Layout: Initiatoren | Links & Touched By -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <!-- Left Column: Initiatoren -->
-        <div class="bg-white shadow-sm border border-gray-200 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              </svg>
-              Initiatoren
-            </h2>
-            <div class="space-y-4">
-              <%= for {initiator, index} <- Enum.with_index(@vorgang["initiatoren"] || []) do %>
-                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                  <div class="flex-1 space-y-2">
-                    <%= if @editing_initiator && @editing_initiator.index == index && @editing_initiator.field == "person" do %>
-                      <div class="flex items-center space-x-2">
-                        <input 
-                          type="text" 
-                          value={@editing_initiator.value} 
-                          phx-blur="save_initiator_field" 
-                          phx-keyup="save_initiator_field" 
-                          phx-value-key="Enter"
-                          class="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                          autofocus
-                        >
-                        <button 
-                          phx-click="save_initiator_field" 
-                          class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1 rounded hover:bg-green-50"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                          </svg>
-                        </button>
-                        <button 
-                          phx-click="cancel_initiator_edit" 
-                          class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1 rounded hover:bg-red-50"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    <% else %>
-                      <%= if initiator["person"] do %>
-                        <div class="flex items-center space-x-2">
-                          <span class="font-medium text-gray-900"><%= initiator["person"] %></span>
-                          <button 
-                            phx-click="edit_initiator_field" 
-                            phx-value-index={index} 
-                            phx-value-field="person"
-                            class="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 rounded hover:bg-gray-100"
-                          >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      <% end %>
-                    <% end %>
-
-                    <%= if @editing_initiator && @editing_initiator.index == index && @editing_initiator.field == "organisation" do %>
-                      <div class="flex items-center space-x-2">
-                        <input 
-                          type="text" 
-                          value={@editing_initiator.value} 
-                          phx-blur="save_initiator_field" 
-                          phx-keyup="save_initiator_field" 
-                          phx-value-key="Enter"
-                          class="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                          autofocus
-                        >
-                        <button 
-                          phx-click="save_initiator_field" 
-                          class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1 rounded hover:bg-green-50"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                          </svg>
-                        </button>
-                        <button 
-                          phx-click="cancel_initiator_edit" 
-                          class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1 rounded hover:bg-red-50"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    <% else %>
-                      <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-600"><%= initiator["organisation"] %></span>
-                        <button 
-                          phx-click="edit_initiator_field" 
-                          phx-value-index={index} 
-                          phx-value-field="organisation"
-                          class="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 rounded hover:bg-gray-100"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    <% end %>
-
-                    <%= if @editing_initiator && @editing_initiator.index == index && @editing_initiator.field == "fachgebiet" do %>
-                      <div class="flex items-center space-x-2">
-                        <input 
-                          type="text" 
-                          value={@editing_initiator.value} 
-                          phx-blur="save_initiator_field" 
-                          phx-keyup="save_initiator_field" 
-                          phx-value-key="Enter"
-                          class="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                          autofocus
-                        >
-                        <button 
-                          phx-click="save_initiator_field" 
-                          class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1 rounded hover:bg-green-50"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                          </svg>
-                        </button>
-                        <button 
-                          phx-click="cancel_initiator_edit" 
-                          class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1 rounded hover:bg-red-50"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    <% else %>
-                      <%= if initiator["fachgebiet"] do %>
-                        <div class="flex items-center space-x-2">
-                          <span class="text-sm text-gray-500"><%= initiator["fachgebiet"] %></span>
-                          <button 
-                            phx-click="edit_initiator_field" 
-                            phx-value-index={index} 
-                            phx-value-field="fachgebiet"
-                            class="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 rounded hover:bg-gray-100"
-                          >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      <% end %>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
-              
-              <!-- Add new initiator -->
-              <%= if @adding_initiator do %>
-                <form phx-submit="save_new_initiator" class="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
-                  <div class="flex items-center space-x-2">
-                    <input 
-                      type="text" 
-                      name="person"
-                      placeholder="Person (optional)"
-                      class="flex-1 px-3 py-2.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                      autofocus
-                    >
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <input 
-                      type="text" 
-                      name="organisation"
-                      placeholder="Organisation *"
-                      class="flex-1 px-3 py-2.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    >
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <input 
-                      type="text" 
-                      name="fachgebiet"
-                      placeholder="Fachgebiet (optional)"
-                      class="flex-1 px-3 py-2.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    >
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <button 
-                      type="submit"
-                      class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-green-50"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                    </button>
-                    <button 
-                      type="button"
-                      phx-click="cancel_add_initiator" 
-                      class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-red-50"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </form>
-              <% else %>
-                <button 
-                  phx-click="add_initiator" 
-                  class="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                  </svg>
-                  <span>Neuen Initiator hinzufügen</span>
-                </button>
-              <% end %>
-            </div>
-          </div>
-
-        <!-- Right Column: Links & Touched By -->
-        <div class="space-y-6">
-          <!-- Links -->
-          <div class="bg-white shadow-sm border border-gray-200 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-              </svg>
-              Links
-            </h2>
-            <div class="space-y-3">
-              <%= for {link, index} <- Enum.with_index(@vorgang["links"] || []) do %>
-                <%= if @editing_link && @editing_link.index == index do %>
-                  <div class="flex items-center space-x-2">
-                    <input 
-                      type="text" 
-                      value={@editing_link.value} 
-                      phx-blur="save_link" 
-                      phx-keyup="save_link" 
-                      phx-value-key="Enter"
-                      class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                      autofocus
-                    >
-                    <button 
-                      phx-click="save_link" 
-                      class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-green-50"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                    </button>
-                    <button 
-                      phx-click="cancel_link_edit" 
-                      class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-red-50"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                      </svg>
-                    </button>
-                  </div>
-                <% else %>
-                  <div class="flex items-center space-x-2">
-                    <a href={link} target="_blank" class="text-blue-600 hover:text-blue-700 text-sm break-all flex-1 transition-colors duration-200">
-                      <%= link %>
-                    </a>
-                    <button 
-                      phx-click="edit_link" 
-                      phx-value-index={index}
-                      class="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1.5 rounded-lg hover:bg-gray-100"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                      </svg>
-                    </button>
                   </div>
                 <% end %>
-              <% end %>
-              
-              <!-- Add new link -->
-              <%= if @adding_link do %>
-                <form phx-submit="save_new_link" class="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <input 
-                    type="text" 
-                    name="value"
-                    placeholder="Link URL eingeben"
-                    class="flex-1 px-3 py-2.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    autofocus
-                  >
-                  <button 
-                    type="submit"
-                    class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-green-50"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                  </button>
-                  <button 
-                    type="button"
-                    phx-click="cancel_add_link" 
-                    class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-red-50"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
-                </form>
-              <% else %>
-                <button 
-                  phx-click="add_link" 
-                  class="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                  </svg>
-                  <span>Neuen Link hinzufügen</span>
-                </button>
-              <% end %>
+              </div>
             </div>
           </div>
 
-          <!-- Lobbyregister -->
-          <div class="bg-white shadow-sm border border-gray-200 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-              </svg>
-              Lobbyregister
-            </h2>
-            <div class="space-y-4">
-              <%= if @vorgang["lobbyregister"] && is_list(@vorgang["lobbyregister"]) do %>
-                <%= for entry <- @vorgang["lobbyregister"] do %>
-                  <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <div class="flex justify-between items-start mb-2">
-                      <div class="flex-1">
-                        <%= if entry["organisation"]["person"] do %>
-                          <div class="font-medium text-gray-900 text-sm"><%= entry["organisation"]["person"] %></div>
-                        <% end %>
-                        <div class="text-sm text-gray-600"><%= entry["organisation"]["organisation"] %></div>
-                        <%= if entry["organisation"]["fachgebiet"] do %>
-                          <div class="text-xs text-gray-500"><%= entry["organisation"]["fachgebiet"] %></div>
-                        <% end %>
-                      </div>
-                      <div class="text-xs text-gray-500 font-mono"><%= entry["interne_id"] %></div>
-                    </div>
-                    <div class="text-sm text-gray-700 mb-2"><%= entry["intention"] %></div>
-                    <div class="flex items-center justify-between">
-                      <a href={entry["link"]} target="_blank" class="text-blue-600 hover:text-blue-700 text-xs transition-colors duration-200">
-                        Lobbyregister-Eintrag
-                      </a>
-                      <%= if entry["betroffene_drucksachen"] && length(entry["betroffene_drucksachen"]) > 0 do %>
-                        <div class="text-xs text-gray-500">
-                          Betroffene Drucksachen: <%= Enum.join(entry["betroffene_drucksachen"], ", ") %>
-                        </div>
-                      <% end %>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-              
-              <!-- Add new lobbyregister entry -->
-              <%= if @adding_lobbyregister do %>
-                <form phx-submit="save_new_lobbyregister" class="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
-                  <div class="grid grid-cols-1 gap-3">
-                    <input 
-                      type="text" 
-                      name="person"
-                      placeholder="Person (optional)"
-                      class="px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                      autofocus
-                    >
-                    <input 
-                      type="text" 
-                      name="organisation"
-                      placeholder="Organisation *"
-                      class="px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    >
-                    <input 
-                      type="text" 
-                      name="fachgebiet"
-                      placeholder="Fachgebiet (optional)"
-                      class="px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    >
-                    <input 
-                      type="text" 
-                      name="interne_id"
-                      placeholder="Interne ID *"
-                      class="px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    >
-                  </div>
-                  <textarea 
-                    name="intention"
-                    placeholder="Intention *"
-                    class="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    rows="2"
-                  ></textarea>
-                  <input 
-                    type="text" 
-                    name="link"
-                    placeholder="Link *"
-                    class="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                  >
-                  <input 
-                    type="text" 
-                    name="betroffene_drucksachen"
-                    placeholder="Betroffene Drucksachen (kommagetrennt)"
-                    class="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                  >
-                  <div class="flex items-center space-x-2">
-                    <button 
-                      type="submit"
-                      class="text-green-600 hover:text-green-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-green-50"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                    </button>
-                    <button 
-                      type="button"
-                      phx-click="cancel_add_lobbyregister" 
-                      class="text-red-600 hover:text-red-700 transition-colors duration-200 p-1.5 rounded-lg hover:bg-red-50"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </form>
-              <% else %>
+          <!-- Right Column: Lobbyregister -->
+          <div class="space-y-4">
+            <!-- Lobbyregister Section -->
+            <div class="bg-white shadow rounded-lg p-4">
+              <div class="flex justify-between items-center mb-3">
+                <h2 class="text-base font-medium text-gray-900">Lobbyregister</h2>
                 <button 
                   phx-click="add_lobbyregister" 
-                  class="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                   </svg>
-                  <span>Neuen Lobbyregister-Eintrag hinzufügen</span>
+                  Hinzufügen
                 </button>
+              </div>
+
+              <%= if @adding_lobbyregister do %>
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                  <form phx-submit="save_new_lobbyregister" class="space-y-3">
+                    <div class="grid grid-cols-1 gap-2">
+                      <input 
+                        type="text" 
+                        name="organisation_person"
+                        placeholder="Person (Organisation)"
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <input 
+                        type="text" 
+                        name="organisation_name" 
+                        placeholder="Organisation *"
+                        required
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <input 
+                        type="text" 
+                        name="organisation_fachgebiet" 
+                        placeholder="Fachgebiet"
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <input 
+                        type="url" 
+                        name="organisation_lobbyregister" 
+                        placeholder="Lobbyregister Link"
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <input 
+                        type="text" 
+                        name="interne_id" 
+                        placeholder="Interne ID *"
+                        required
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <textarea 
+                        name="intention" 
+                        placeholder="Intention *"
+                        required
+                        rows="3"
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
+                      <input 
+                        type="url" 
+                        name="link" 
+                        placeholder="Link zum Eintrag *"
+                        required
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <input 
+                        type="text" 
+                        name="betroffene_drucksachen" 
+                        placeholder="Betroffene Drucksachen (kommagetrennt)"
+                        class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div class="flex gap-2">
+                      <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        OK
+                      </button>
+                      <button type="button" phx-click="cancel_add_lobbyregister" class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </form>
+                </div>
               <% end %>
+
+              <div class="space-y-2">
+                <%= for {entry, index} <- Enum.with_index(@vorgang["lobbyregister"] || []) do %>
+                  <div class="p-3 bg-gray-50 rounded-md border border-gray-200">
+                    <div class="flex justify-between items-start">
+                      <div class="space-y-1 flex-1">
+                        <%= if entry["organisation"] do %>
+                          <div class="space-y-1">
+                            <%= if entry["organisation"]["person"] && entry["organisation"]["person"] != "" do %>
+                              <div class="flex items-center space-x-2">
+                                <span class="text-xs font-medium text-gray-700">Person:</span>
+                                <span class="text-xs text-gray-900"><%= entry["organisation"]["person"] %></span>
+                              </div>
+                            <% end %>
+                            <%= if entry["organisation"]["organisation"] && entry["organisation"]["organisation"] != "" do %>
+                              <div class="flex items-center space-x-2">
+                                <span class="text-xs font-medium text-gray-700">Organisation:</span>
+                                <span class="text-xs text-gray-900"><%= entry["organisation"]["organisation"] %></span>
+                              </div>
+                            <% end %>
+                            <%= if entry["organisation"]["fachgebiet"] && entry["organisation"]["fachgebiet"] != "" do %>
+                              <div class="flex items-center space-x-2">
+                                <span class="text-xs font-medium text-gray-700">Fachgebiet:</span>
+                                <span class="text-xs text-gray-900"><%= entry["organisation"]["fachgebiet"] %></span>
+                              </div>
+                            <% end %>
+                            <%= if entry["organisation"]["lobbyregister"] && entry["organisation"]["lobbyregister"] != "" do %>
+                              <div class="flex items-center space-x-2">
+                                <span class="text-xs font-medium text-gray-700">Lobbyregister:</span>
+                                <a href={entry["organisation"]["lobbyregister"]} target="_blank" class="text-xs text-indigo-600 hover:text-indigo-900 hover:underline"><%= entry["organisation"]["lobbyregister"] %></a>
+                              </div>
+                            <% end %>
+                          </div>
+                        <% end %>
+                        <%= if entry["interne_id"] && entry["interne_id"] != "" do %>
+                          <div class="flex items-center space-x-2">
+                            <span class="text-xs font-medium text-gray-700">Interne ID:</span>
+                            <span class="text-xs text-gray-900"><%= entry["interne_id"] %></span>
+                          </div>
+                        <% end %>
+                        <%= if entry["intention"] && entry["intention"] != "" do %>
+                          <div class="flex items-start space-x-2">
+                            <span class="text-xs font-medium text-gray-700">Intention:</span>
+                            <span class="text-xs text-gray-900 flex-1"><%= entry["intention"] %></span>
+                          </div>
+                        <% end %>
+                        <%= if entry["link"] && entry["link"] != "" do %>
+                          <div class="flex items-center space-x-2">
+                            <span class="text-xs font-medium text-gray-700">Link:</span>
+                            <a href={entry["link"]} target="_blank" class="text-xs text-indigo-600 hover:text-indigo-900 hover:underline"><%= entry["link"] %></a>
+                          </div>
+                        <% end %>
+                        <%= if entry["betroffene_drucksachen"] && length(entry["betroffene_drucksachen"]) > 0 do %>
+                          <div class="flex items-start space-x-2">
+                            <span class="text-xs font-medium text-gray-700">Drucksachen:</span>
+                            <div class="text-xs text-gray-900 flex-1">
+                              <%= for drucksache <- entry["betroffene_drucksachen"] do %>
+                                <span class="inline-block bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs mr-1 mb-1"><%= drucksache %></span>
+                              <% end %>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                      <button 
+                        phx-click="remove_lobbyregister" 
+                        phx-value-index={index}
+                        class="inline-flex items-center px-1 py-1 text-xs font-medium text-red-700 bg-red-100 border border-transparent rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 ml-2">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
+        <!-- Stations Section -->
+        <div class="bg-white shadow rounded-lg p-4 mt-6" id="stations-container">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-medium text-gray-900">Stationen *</h2>
+            <button 
+              phx-click="add_station" 
+              class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Station hinzufügen
+            </button>
+          </div>
 
-
-      <!-- Stationen -->
-      <%= if @vorgang["stationen"] && length(@vorgang["stationen"]) > 0 do %>
-        <div class="bg-white shadow-sm border border-gray-200 rounded-xl p-8">
-          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-            </svg>
-            Stationen
-          </h2>
-          <div class="space-y-6">
+          <div class="space-y-4">
             <%= for {station, index} <- Enum.with_index(@vorgang["stationen"] || []) do %>
-              <div class="border border-gray-200 rounded-xl overflow-hidden">
-                <!-- Station Header (always visible) -->
-                <div class="p-4 bg-gray-50 border-b border-gray-200">
-                  <div class="flex items-center space-x-4">
-                    <div class="text-sm font-medium text-gray-900">
-                      <%= format_date(station["zp_start"]) %>
+              <div 
+                id={"station-#{index}"}
+                class={"border border-gray-200 rounded-lg transition-all duration-500 #{if @new_station_index == index, do: "border-green-400 bg-green-50 shadow-lg", else: ""}"}>
+                
+                <!-- Compact Header (always visible) -->
+                <div class="p-4 cursor-pointer hover:bg-gray-50" phx-click="toggle_station" phx-value-index={index}>
+                  <div class="flex justify-between items-start">
+                    <div class="flex items-center space-x-3 flex-1">
+                      <!-- Expand/Collapse Icon -->
+                      <div class="flex-shrink-0">
+                        <svg class={"w-5 h-5 text-gray-500 transition-transform duration-200 #{if MapSet.member?(@collapsed_stations, index), do: "", else: "rotate-90"}"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      </div>
+                      
+                      <!-- Station Number and Title -->
+                      <div class="flex items-center space-x-2 flex-1">
+                        <h3 class="text-base font-medium text-gray-900">Station <%= index + 1 %></h3>
+                        <%= if @new_station_index == index do %>
+                          <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Neu
+                          </span>
+                        <% end %>
+                      </div>
+                      
+                      <!-- Vital Info (compact) -->
+                      <div class="flex items-center space-x-4 text-sm text-gray-600">
+                        <%= if station["titel"] && station["titel"] != "" do %>
+                          <span class="font-medium"><%= station["titel"] %></span>
+                        <% end %>
+                        <%= if station["typ"] && station["typ"] != "" do %>
+                          <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            <%= station["typ"] %>
+                          </span>
+                        <% end %>
+                        <%= if station["parlament"] && station["parlament"] != "" do %>
+                          <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                            <%= station["parlament"] %>
+                          </span>
+                        <% end %>
+                        <%= if get_in(station, ["gremium", "name"]) && get_in(station, ["gremium", "name"]) != "" do %>
+                          <span class="text-gray-500">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <%= get_in(station, ["gremium", "name"]) %>
+                          </span>
+                        <% end %>
+                        <%= if station["zp_start"] && station["zp_start"] != "" do %>
+                          <span class="text-gray-500">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <%= station["zp_start"] %>
+                          </span>
+                        <% end %>
+                      </div>
                     </div>
-                    <div class="text-sm text-gray-600">
-                      <%= get_stationstyp_label(station["typ"]) %>
-                    </div>
-                    <div class="text-sm text-gray-600">
-                      <%= if station["gremium"] do %>
-                        <%= station["gremium"]["name"] %> 
-                        (<%= get_parlament_label(station["gremium"]["parlament"]) %>)
-                      <% end %>
-                    </div>
+                    
+                    <!-- Remove Button -->
+                    <button 
+                      phx-click="remove_station" 
+                      phx-value-index={index}
+                      phx-stop-propagation="true"
+                      class="inline-flex items-center px-2 py-1 text-xs font-medium text-red-700 bg-red-100 border border-transparent rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 ml-4">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
                   </div>
                 </div>
                 
-                <!-- Station Details (collapsible) -->
-                <div class="p-6 bg-white">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                    <%= if station["titel"] do %>
+                <!-- Detailed Content (collapsible) -->
+                <div class={"border-t border-gray-200 transition-all duration-300 overflow-hidden #{if MapSet.member?(@collapsed_stations, index), do: "max-h-0", else: "max-h-screen"}"}>
+                  <div class="p-4 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <span class="font-medium text-gray-700">Titel:</span>
-                        <span class="text-gray-900 ml-2"><%= station["titel"] %></span>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Titel</label>
+                        <input 
+                          type="text" 
+                          name={"station[#{index}][titel]"} 
+                          value={station["titel"] || ""} 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                          placeholder="Optionaler Titel">
                       </div>
-                    <% end %>
-                    
-                    <div>
-                      <span class="font-medium text-gray-700">Start:</span>
-                      <span class="text-gray-900 ml-2"><%= format_date(station["zp_start"]) %></span>
-                    </div>
-                    
-                    <%= if station["zp_modifiziert"] do %>
+
                       <div>
-                        <span class="font-medium text-gray-700">Modifiziert:</span>
-                        <span class="text-gray-900 ml-2"><%= format_date(station["zp_modifiziert"]) %></span>
-                      </div>
-                    <% end %>
-                    
-                    <%= if station["link"] do %>
-                      <div class="md:col-span-2">
-                        <span class="font-medium text-gray-700">Link:</span>
-                        <a href={station["link"]} target="_blank" class="text-blue-600 hover:text-blue-700 ml-2 transition-colors duration-200">
-                          <%= station["link"] %>
-                        </a>
-                      </div>
-                    <% end %>
-                    
-                    <%= if station["dokumente"] && length(station["dokumente"]) > 0 do %>
-                      <div class="md:col-span-2">
-                        <span class="font-medium text-gray-700">Dokumente:</span>
-                        <div class="mt-2 space-y-1">
-                          <%= for dokument <- station["dokumente"] || [] do %>
-                            <div class="text-sm text-gray-600">
-                              <%= if is_map(dokument) do %>
-                                <%= dokument["titel"] || dokument["typ"] %>
-                              <% else %>
-                                <%= dokument %>
-                              <% end %>
-                            </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Typ *</label>
+                        <select 
+                          name={"station[#{index}][typ]"} 
+                          value={station["typ"] || ""}
+                          required
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                          <option value="">Bitte wählen</option>
+                          <%= for typ <- @stationstypen do %>
+                            <option value={typ} selected={station["typ"] == typ}><%= typ %></option>
                           <% end %>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Parlament *</label>
+                        <select 
+                          name={"station[#{index}][parlament]"} 
+                          value={station["parlament"] || ""}
+                          required
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                          <option value="">Bitte wählen</option>
+                          <%= for parlament <- @parlamente do %>
+                            <option value={parlament} selected={station["parlament"] == parlament}><%= parlament %></option>
+                          <% end %>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Startdatum *</label>
+                        <input 
+                          type="datetime-local" 
+                          name={"station[#{index}][zp_start]"} 
+                          value={station["zp_start"] || ""} 
+                          required
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Modifiziert</label>
+                        <input 
+                          type="datetime-local" 
+                          name={"station[#{index}][zp_modifiziert]"} 
+                          value={station["zp_modifiziert"] || ""} 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Link</label>
+                        <input 
+                          type="url" 
+                          name={"station[#{index}][link]"} 
+                          value={station["link"] || ""} 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                          placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <!-- Gremium Section -->
+                    <div class="p-3 bg-gray-50 rounded-md">
+                      <h4 class="text-sm font-medium text-gray-700 mb-2">Gremium</h4>
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label class="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                          <input 
+                            type="text" 
+                            name={"station[#{index}][gremium][name]"} 
+                            value={get_in(station, ["gremium", "name"]) || ""} 
+                            required
+                            class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                            placeholder="z.B. plenum">
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-gray-600 mb-1">Wahlperiode *</label>
+                          <input 
+                            type="number" 
+                            name={"station[#{index}][gremium][wahlperiode]"} 
+                            value={get_in(station, ["gremium", "wahlperiode"]) || ""} 
+                            required
+                            min="0"
+                            class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-gray-600 mb-1">Parlament *</label>
+                          <select 
+                            name={"station[#{index}][gremium][parlament]"} 
+                            value={get_in(station, ["gremium", "parlament"]) || ""}
+                            required
+                            class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                            <option value="">Bitte wählen</option>
+                            <%= for parlament <- @parlamente do %>
+                              <option value={parlament} selected={get_in(station, ["gremium", "parlament"]) == parlament}><%= parlament %></option>
+                            <% end %>
+                          </select>
                         </div>
                       </div>
-                    <% end %>
+                      <div class="mt-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Gremium Link</label>
+                        <input 
+                          type="url" 
+                          name={"station[#{index}][gremium][link]"} 
+                          value={get_in(station, ["gremium", "link"]) || ""} 
+                          class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                          placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <!-- Additional Fields -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Federführend</label>
+                        <label class="flex items-center">
+                          <input 
+                            type="checkbox" 
+                            name={"station[#{index}][gremium_federf]"} 
+                            value="true"
+                            checked={station["gremium_federf"] || false}
+                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                          <span class="ml-2 text-sm text-gray-700">Federführendes Gremium</span>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Trojanergefahr</label>
+                        <input 
+                          type="number" 
+                          name={"station[#{index}][trojanergefahr]"} 
+                          value={station["trojanergefahr"] || ""} 
+                          min="1"
+                          max="10"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                          placeholder="1-10">
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Schlagworte</label>
+                        <input 
+                          type="text" 
+                          name={"station[#{index}][schlagworte]"} 
+                          value={if station["schlagworte"], do: Enum.join(station["schlagworte"], ", "), else: ""} 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                          placeholder="kommagetrennt">
+                      </div>
+                    </div>
                   </div>
+                </div>
+              </div>
+            <% end %>
+            
+            <!-- Empty state when no stations -->
+            <%= if (@vorgang["stationen"] || []) == [] do %>
+              <div class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Stationen vorhanden</h3>
+                <p class="mt-1 text-sm text-gray-500">Fügen Sie die erste Station hinzu, um zu beginnen.</p>
+                <div class="mt-6">
+                  <button 
+                    phx-click="add_station" 
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Erste Station hinzufügen
+                  </button>
                 </div>
               </div>
             <% end %>
           </div>
         </div>
-      <% end %>
+    <% else %>
+      <div class="text-center py-12">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-4">Vorgang not found</h2>
+        <p class="text-gray-600">The vorgang with ID <%= @vorgang_id %> could not be loaded.</p>
+      </div>
     <% end %>
+  <% end %>
   </main>
 </div> 

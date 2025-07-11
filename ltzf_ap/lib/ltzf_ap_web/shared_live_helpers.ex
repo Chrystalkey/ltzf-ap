@@ -85,6 +85,24 @@ defmodule LtzfApWeb.SharedLiveHelpers do
   end
   def format_datetime(_), do: "N/A"
 
+  def format_time_remaining(expires_at) when is_binary(expires_at) do
+    case DateTime.from_iso8601(expires_at) do
+      {:ok, expires_datetime, _} ->
+        now = DateTime.utc_now()
+        diff = DateTime.diff(expires_datetime, now, :second)
+
+        cond do
+          diff < 0 -> "Expired"
+          diff < 60 -> "#{diff}s"
+          diff < 3600 -> "#{div(diff, 60)}m"
+          diff < 86400 -> "#{div(diff, 3600)}h"
+          true -> "#{div(diff, 86400)}d"
+        end
+      _ -> "Unknown"
+    end
+  end
+  def format_time_remaining(_), do: "Unknown"
+
   # Text utility functions
   def truncate_text(text, max_length \\ 100)
   def truncate_text(text, max_length) when is_binary(text) do
