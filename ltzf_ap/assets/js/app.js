@@ -21,19 +21,29 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
-import {SessionStorage} from "./session_storage.js"
+
+// Import client-side API modules
+import "./api_client.js"
+import "./auth_manager.js"
+import "./data_store.js"
+
+// Import LiveView hooks
+import ApiHook from "./hooks/api_hook.js"
 import LoginHook from "./hooks/login_hook.js"
-import SessionHook from "./hooks/session_hook.js"
+
+
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
   hooks: {
-    LoginHook,
-    SessionHook
+    ApiHook,
+    LoginHook
   }
 })
+
+
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
@@ -49,6 +59,8 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
-// Expose SessionStorage globally for LiveView hooks
-window.SessionStorage = SessionStorage
+// Expose client-side modules globally for debugging
+window.ApiClient = ApiClient;
+window.AuthManager = AuthManager;
+window.DataStore = DataStore;
 

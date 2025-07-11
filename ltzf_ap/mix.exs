@@ -51,15 +51,12 @@ defmodule LtzfAp.MixProject do
       {:gettext, "~> 0.26"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
-      {:bandit, "~> 1.5"},
-      # HTTP client for API calls
-      {:finch, "~> 0.18"},
-      # SQLite for session storage
-      {:ecto_sqlite3, "~> 0.12"},
-      # Encryption for API keys
-      {:cloak, "~> 1.1"},
-      # UUID generation
-      {:uuid, "~> 1.1"}
+      {:bandit, "~> 1.5"}
+      # Removed server-side dependencies:
+      # {:finch, "~> 0.18"},
+      # {:ecto_sqlite3, "~> 0.12"},
+      # {:cloak, "~> 1.1"},
+      # {:uuid, "~> 1.1"}
     ]
   end
 
@@ -71,14 +68,13 @@ defmodule LtzfAp.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "assets.setup", "assets.build"],
+      setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
+      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["tailwind ltzf_ap", "esbuild ltzf_ap"],
-      "assets.deploy": [
-        "tailwind ltzf_ap --minify",
-        "esbuild ltzf_ap --minify",
-        "phx.digest"
-      ]
+      "assets.build": ["tailwind default", "esbuild default"],
+      "assets.deploy": ["tailwind default --minify", "esbuild default --minify", "phx.digest"]
     ]
   end
 end

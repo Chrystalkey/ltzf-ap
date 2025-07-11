@@ -11,9 +11,9 @@ defmodule LtzfAp.Application do
       LtzfApWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:ltzf_ap, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: LtzfAp.PubSub},
-      # Start our custom services
-      LtzfAp.ApiClient,
-      LtzfAp.Session,
+      # Removed server-side API client and session management
+      # LtzfAp.ApiClient,
+      # LtzfAp.Session,
       # Start to serve requests, typically the last entry
       LtzfApWeb.Endpoint
     ]

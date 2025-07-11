@@ -1,149 +1,169 @@
 defmodule LtzfApWeb.VorgaengeLive do
   use LtzfApWeb, :live_view
-
-  alias LtzfApWeb.SharedLiveHelpers
   import LtzfApWeb.SharedHeader
 
-  @unknown_scope "unknown"
-
-  def mount(%{"s" => session_id} = _params, _session, socket) do
-    case SharedLiveHelpers.mount_with_session(session_id, socket) do
-      {:ok, socket} ->
-        socket = load_vorgaenge(socket)
-        {:ok, socket}
-      {:error, _reason} ->
-        {:ok, redirect(socket, to: "/login")}
-    end
-  end
-
   def mount(_params, _session, socket) do
-    # Set up initial assigns
-    assigns = SharedLiveHelpers.initial_assigns()
-    socket = assign(socket, assigns)
+    socket = assign(socket,
+      vorgaenge: [],
+      filters: %{"page" => "1", "per_page" => "32"},
+      loading: false,
+      error: nil,
+      pagination: %{},
+      session_id: nil,
+      auth_info: %{scope: "unknown"},
+      session_data: %{expires_at: DateTime.utc_now()},
+      backend_url: nil
+    )
 
-    # Check if we have a session ID from localStorage
-    {:ok, socket |> push_event("get_stored_session", %{})}
+    # Trigger client-side session restoration
+    {:ok, push_event(socket, "restore_session", %{})}
   end
 
-  def handle_event("restore_session", %{"session_id" => session_id}, socket) do
-    case SharedLiveHelpers.mount_with_session(session_id, socket) do
-      {:ok, updated_socket} ->
-        updated_socket = load_vorgaenge(updated_socket)
-        {:noreply, updated_socket}
-      {:error, _reason} ->
-        SharedLiveHelpers.handle_session_restoration_error(socket, "Invalid session")
-    end
-  rescue
-    _error ->
-      SharedLiveHelpers.handle_session_restoration_error(socket, "Session restoration error")
-  end
+  def handle_event("session_restored", %{"credentials" => credentials}, socket) do
+    # Client has restored session, initialize data
+    socket = assign(socket,
+      backend_url: credentials["backend_url"],
+      auth_info: %{scope: credentials["scope"]},
+      session_data: %{expires_at: credentials["expires_at"]},
+      session_id: "restored" # Set a session ID to indicate we have a session
+    )
 
-  def handle_event("no_stored_session", _params, socket) do
-    assigns = SharedLiveHelpers.initial_assigns()
-    socket = assign(socket, assigns)
-    {:ok, redirect(socket, to: ~p"/login")}
-  end
-
-  def handle_event("filter", params, socket) do
-    filter_keys = ["since", "until", "p", "wp", "person", "fach", "org", "vgtyp"]
-    socket = SharedLiveHelpers.handle_filter(params, socket, filter_keys, :load_vorgaenge)
-    socket = load_vorgaenge(socket)
+    # Load vorgaenge data
+    send(self(), :load_vorgaenge)
     {:noreply, socket}
   end
 
-  def handle_event("clear_filters", _params, socket) do
-    socket = SharedLiveHelpers.handle_clear_filters(socket, "32", :load_vorgaenge)
-    socket = load_vorgaenge(socket)
+  def handle_event("session_expired", _params, socket) do
+    {:noreply, redirect(socket, to: ~p"/login")}
+  end
+
+  def handle_event("logout", _params, socket) do
+    {:noreply,
+     socket
+     |> push_event("logout", %{})
+     |> redirect(to: ~p"/login")}
+  end
+
+  def handle_event("load_vorgaenge", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:loading, true)
+     |> push_event("api_request", %{
+       method: "getVorgaenge",
+       params: socket.assigns.filters,
+       request_id: "vorgaenge_load"
+     })}
+  end
+
+  def handle_event("api_response", %{"request_id" => "vorgaenge_load", "result" => result}, socket) do
+    # Extract data and pagination info from API response
+    vorgaenge = result["data"] || []
+    pagination = %{
+      total_count: result["count"],
+      total_pages: result["totalPages"],
+      current_page: result["currentPage"],
+      per_page: result["perPage"]
+    }
+
+    {:noreply, assign(socket, vorgaenge: vorgaenge, pagination: pagination, loading: false, error: nil)}
+  end
+
+  def handle_event("api_error", %{"request_id" => "vorgaenge_load", "error" => error}, socket) do
+    {:noreply, assign(socket, vorgaenge: [], loading: false, error: error)}
+  end
+
+  def handle_event("filter_change", params, socket) do
+    # Convert form params to filters map, excluding non-filter fields
+    filters = Map.take(params, ["since", "until", "p", "wp", "person", "fach", "org", "vgtyp", "page", "per_page"])
+    socket = assign(socket, filters: filters)
+    send(self(), :load_vorgaenge)
     {:noreply, socket}
   end
 
   def handle_event("page_change", %{"page" => page}, socket) do
-    socket = SharedLiveHelpers.handle_page_change(socket, page, :load_vorgaenge)
-    socket = load_vorgaenge(socket)
+    filters = Map.put(socket.assigns.filters, "page", page)
+    socket = assign(socket, filters: filters)
+    send(self(), :load_vorgaenge)
     {:noreply, socket}
   end
 
-  def handle_event("logout", _params, socket) do
-    SharedLiveHelpers.handle_logout(socket)
-  end
-
-  defp load_vorgaenge(socket) do
-    # Don't load if we don't have session data
-    if is_nil(socket.assigns.session_data) do
-      socket
-    else
-      socket = assign(socket, :loading, true)
-
-      # Convert filters to API parameters
-      params = socket.assigns.filters
-      |> Enum.filter(fn {_key, value} -> value != nil and value != "" end)
-      |> Enum.map(fn {key, value} -> {key, value} end)
-
-      case LtzfAp.ApiClient.get_vorgaenge_with_headers(
-        socket.assigns.backend_url,
-        socket.assigns.session_data.api_key,
-        params
-      ) do
-        {:ok, vorgaenge, headers} ->
-          pagination = SharedLiveHelpers.extract_pagination(headers)
-          socket =
-            socket
-            |> assign(:vorgaenge, vorgaenge)
-            |> assign(:pagination, pagination)
-            |> assign(:loading, false)
-            |> assign(:error, nil)
-
-          socket
-
-        {:error, reason} ->
-          socket =
-            socket
-            |> assign(:vorgaenge, [])
-            |> assign(:loading, false)
-            |> assign(:error, "Failed to load vorgaenge: #{inspect(reason)}")
-
-          socket
-      end
-    end
-  rescue
-    error ->
-      socket =
-        socket
-        |> assign(:vorgaenge, [])
-        |> assign(:loading, false)
-        |> assign(:error, "Exception loading vorgaenge: #{inspect(error)}")
-
-      socket
+  def handle_info(:load_vorgaenge, socket) do
+    {:noreply,
+     socket
+     |> assign(:loading, true)
+     |> push_event("api_request", %{
+       method: "getVorgaenge",
+       params: socket.assigns.filters,
+       request_id: "vorgaenge_load"
+     })}
   end
 
   # Helper functions for the template
-  def get_last_station_info(vorgang) do
-    case vorgang["stationen"] do
-      stations when is_list(stations) and length(stations) > 0 ->
-        # Sort by zp_start descending and get the most recent
-        # Parse dates properly before sorting
-        sorted_stations = stations
-        |> Enum.filter(fn station -> station["zp_start"] != nil end)
-        |> Enum.sort_by(fn station ->
-          case DateTime.from_iso8601(station["zp_start"]) do
-            {:ok, datetime, _} -> datetime
-            _ -> DateTime.new!(~D[1900-01-01], ~T[00:00:00], "Etc/UTC")
-          end
-        end, {:desc, DateTime})
-
-        last_station = List.first(sorted_stations)
-        %{
-          date: last_station["zp_start"],
-          type: last_station["typ"]
-        }
-      _ ->
-        %{date: nil, type: nil}
+  defp format_date(date_string) when is_binary(date_string) do
+    case Date.from_iso8601(date_string) do
+      {:ok, date} -> Calendar.strftime(date, "%d.%m.%Y")
+      _ -> date_string
     end
   end
 
-  # Delegate to shared helpers
-  defdelegate format_date(date_string), to: SharedLiveHelpers
-  defdelegate get_vorgangstyp_label(vorgangstyp), to: SharedLiveHelpers
-  defdelegate get_parlament_label(parlament), to: SharedLiveHelpers
-  defdelegate format_time_remaining(expires_at), to: SharedLiveHelpers
+  defp format_date(_), do: "N/A"
+
+  defp truncate_text(text, max_length \\ 100)
+  defp truncate_text(text, max_length) when is_binary(text) do
+    if String.length(text) > max_length do
+      String.slice(text, 0, max_length) <> "..."
+    else
+      text
+    end
+  end
+
+  defp truncate_text(_, _max_length), do: "N/A"
+
+  defp get_vorgangstyp_label("antrag"), do: "Antrag"
+  defp get_vorgangstyp_label("anfrage"), do: "Anfrage"
+  defp get_vorgangstyp_label("bericht"), do: "Bericht"
+  defp get_vorgangstyp_label("beschluss"), do: "Beschluss"
+  defp get_vorgangstyp_label("entwurf"), do: "Entwurf"
+  defp get_vorgangstyp_label("gesetz"), do: "Gesetz"
+  defp get_vorgangstyp_label("mitteilung"), do: "Mitteilung"
+  defp get_vorgangstyp_label("verordnung"), do: "Verordnung"
+  defp get_vorgangstyp_label(typ) when is_binary(typ), do: String.capitalize(typ)
+  defp get_vorgangstyp_label(_), do: "Unbekannt"
+
+  defp get_parlament_label(parlament) when is_binary(parlament) do
+    case parlament do
+      "bundestag" -> "Bundestag"
+      "bundesrat" -> "Bundesrat"
+      "landtag" -> "Landtag"
+      _ -> String.capitalize(parlament)
+    end
+  end
+  defp get_parlament_label(_), do: "Unbekannt"
+
+  defp get_last_station_info(vorgang) do
+    case vorgang do
+      %{"stationen" => stations} when is_list(stations) and length(stations) > 0 ->
+        List.last(stations)
+      _ ->
+        nil
+    end
+  end
+
+  defp extract_pagination_from_headers(headers) do
+    %{
+      total_count: parse_integer_header(headers["x-total-count"]),
+      total_pages: parse_integer_header(headers["x-total-pages"]),
+      current_page: parse_integer_header(headers["x-page"]) || 1,
+      per_page: parse_integer_header(headers["x-per-page"]) || 32
+    }
+  end
+
+  defp parse_integer_header(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {int, _} -> int
+      :error -> nil
+    end
+  end
+  defp parse_integer_header(_), do: nil
+
 end

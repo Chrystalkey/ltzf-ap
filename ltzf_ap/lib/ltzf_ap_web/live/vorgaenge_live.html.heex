@@ -1,4 +1,4 @@
-<div id="vorgaenge-container" class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" phx-hook="SessionHook">
+<div id="vorgaenge-container" class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" phx-hook="ApiHook">
   <!-- Modern Header -->
   <.app_header 
     subtitle="Vorgänge Management"
@@ -14,7 +14,7 @@
     <!-- Filters -->
     <div class="bg-white shadow rounded-lg p-6 mb-6">
       <h2 class="text-lg font-medium text-gray-900 mb-4">Filter</h2>
-      <form phx-change="filter" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <form phx-change="filter_change" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Date Range -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Aktualisiert seit</label>
@@ -102,7 +102,7 @@
     <% end %>
 
     <!-- Results -->
-    <%= if @vorgaenge && length(@vorgaenge) > 0 do %>
+    <%= if is_list(@vorgaenge) && length(@vorgaenge) > 0 do %>
       <!-- Pagination Info -->
       <.pagination_info pagination={@pagination} item_name="Vorgängen" />
 
@@ -164,8 +164,8 @@
               <div class="mt-4 pt-4 border-t border-gray-200">
                 <div>
                   <span class="font-medium text-gray-700">Letzte Station:</span>
-                  <span class="text-gray-900 ml-2"><%= last_station.type %></span>
-                  <span class="text-gray-500 ml-2">(<%= format_date(last_station.date) %>)</span>
+                  <span class="text-gray-900 ml-2"><%= last_station["typ"] %></span>
+                  <span class="text-gray-500 ml-2">(<%= format_date(last_station["zp_start"]) %>)</span>
                 </div>
               </div>
             <% end %>

@@ -1,4 +1,4 @@
-<div id="enumerations-container" class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" phx-hook="SessionHook">
+<div id="enumerations-container" class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" phx-hook="ApiHook">
   <!-- Modern Header -->
   <.app_header 
     subtitle="Enumerations Management"
@@ -82,7 +82,7 @@
             <.error_state title="Error" message={@error} />
           <% else %>
             <%= if @selected_enumeration do %>
-              <%= if length(@values) > 0 do %>
+              <%= if is_list(@values) && length(@values) > 0 do %>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                   <%= for value <- @values do %>
                     <div class="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50">
@@ -151,7 +151,7 @@
                   <div class="mt-4 pt-4 border-t border-gray-200">
                     <div class="flex justify-between items-center">
                       <div class="text-sm text-gray-500">
-                        <%= length(@values) %> items geladen
+                        <%= if is_list(@values), do: length(@values), else: 0 %> items geladen
                         <%= if @enumeration_pagination.total_count do %>
                           (von <%= @enumeration_pagination.total_count %>)
                         <% end %>

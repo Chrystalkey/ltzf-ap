@@ -1,210 +1,247 @@
 defmodule LtzfApWeb.SitzungenLive do
   use LtzfApWeb, :live_view
-
-  alias LtzfApWeb.SharedLiveHelpers
   import LtzfApWeb.SharedHeader
 
-  def mount(%{"s" => session_id} = _params, _session, socket) do
-    additional_assigns = %{current_week_start: SharedLiveHelpers.get_current_week_start()}
-    case SharedLiveHelpers.mount_with_session(session_id, socket, additional_assigns) do
-      {:ok, socket} ->
-        socket = load_sitzungen(socket)
-        {:ok, socket}
-      {:error, _reason} ->
-        {:ok, redirect(socket, to: "/login")}
-    end
-  end
-
   def mount(_params, _session, socket) do
-    # Set up initial assigns
-    additional_assigns = %{current_week_start: SharedLiveHelpers.get_current_week_start()}
-    assigns = SharedLiveHelpers.initial_assigns(additional_assigns)
-    socket = assign(socket, assigns)
+    # Calculate current week start (Monday)
+    today = Date.utc_today()
+    current_week_start = Date.add(today, -Date.day_of_week(today) + 1)
 
-    # Check if we have a session ID from localStorage
-    {:ok, socket |> push_event("get_stored_session", %{})}
+    socket = assign(socket,
+      sitzungen: [],
+      filters: %{"page" => "1", "per_page" => "32"},
+      loading: false,
+      error: nil,
+      pagination: %{},
+      session_id: nil,
+      auth_info: %{scope: "unknown"},
+      session_data: %{expires_at: DateTime.utc_now()},
+      backend_url: nil,
+      current_week_start: current_week_start
+    )
+
+    # Trigger client-side session restoration
+    {:ok, push_event(socket, "restore_session", %{})}
   end
 
-  def handle_event("restore_session", %{"session_id" => session_id}, socket) do
-    try do
-      additional_assigns = %{current_week_start: SharedLiveHelpers.get_current_week_start()}
-      case SharedLiveHelpers.mount_with_session(session_id, socket, additional_assigns) do
-        {:ok, updated_socket} ->
-          updated_socket = load_sitzungen(updated_socket)
-          {:noreply, updated_socket}
-        {:error, _reason} ->
-          additional_assigns = %{current_week_start: SharedLiveHelpers.get_current_week_start()}
-          SharedLiveHelpers.handle_session_restoration_error(socket, "Invalid session", additional_assigns)
-      end
-    rescue
-      _error ->
-        additional_assigns = %{current_week_start: SharedLiveHelpers.get_current_week_start()}
-        SharedLiveHelpers.handle_session_restoration_error(socket, "Session restoration error", additional_assigns)
-    end
-  end
+  def handle_event("session_restored", %{"credentials" => credentials}, socket) do
+    # Client has restored session, initialize data
+    socket = assign(socket,
+      backend_url: credentials["backend_url"],
+      auth_info: %{scope: credentials["scope"]},
+      session_data: %{expires_at: credentials["expires_at"]},
+      session_id: "restored" # Set a session ID to indicate we have a session
+    )
 
-  def handle_event("no_stored_session", _params, socket) do
-    additional_assigns = %{current_week_start: SharedLiveHelpers.get_current_week_start()}
-    assigns = SharedLiveHelpers.initial_assigns(additional_assigns)
-    socket = assign(socket, assigns)
-    {:ok, redirect(socket, to: ~p"/login")}
-  end
-
-  def handle_event("filter", params, socket) do
-    filter_keys = ["since", "until", "p", "wp", "vgid", "vgtyp", "gr", "y", "m", "dom"]
-    socket = SharedLiveHelpers.handle_filter(params, socket, filter_keys, :load_sitzungen)
-    socket = load_sitzungen(socket)
+    # Load sitzungen data
+    send(self(), :load_sitzungen)
     {:noreply, socket}
   end
 
-  def handle_event("clear_filters", _params, socket) do
-    socket = SharedLiveHelpers.handle_clear_filters(socket, "64", :load_sitzungen)
-    socket = load_sitzungen(socket)
+  def handle_event("session_expired", _params, socket) do
+    {:noreply, redirect(socket, to: ~p"/login")}
+  end
+
+  def handle_event("logout", _params, socket) do
+    {:noreply,
+     socket
+     |> push_event("logout", %{})
+     |> redirect(to: ~p"/login")}
+  end
+
+  def handle_event("load_sitzungen", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:loading, true)
+     |> push_event("api_request", %{
+       method: "getSitzungen",
+       params: socket.assigns.filters,
+       request_id: "sitzungen_load"
+     })}
+  end
+
+  def handle_event("api_response", %{"request_id" => "sitzungen_load", "result" => result}, socket) do
+    # Extract data and pagination info from API response
+    sitzungen = result["data"] || []
+    pagination = %{
+      total_count: result["count"],
+      total_pages: result["totalPages"],
+      current_page: result["currentPage"],
+      per_page: result["perPage"]
+    }
+
+    {:noreply, assign(socket, sitzungen: sitzungen, pagination: pagination, loading: false, error: nil)}
+  end
+
+  def handle_event("api_error", %{"request_id" => "sitzungen_load", "error" => error}, socket) do
+    {:noreply, assign(socket, sitzungen: [], loading: false, error: error)}
+  end
+
+  def handle_event("filter_change", params, socket) do
+    # Convert form params to filters map, excluding non-filter fields
+    filters = Map.take(params, ["since", "until", "p", "wp", "gr", "vgid", "vgtyp", "page", "per_page"])
+    socket = assign(socket, filters: filters)
+    send(self(), :load_sitzungen)
     {:noreply, socket}
   end
 
   def handle_event("page_change", %{"page" => page}, socket) do
-    socket = SharedLiveHelpers.handle_page_change(socket, page, :load_sitzungen)
-    socket = load_sitzungen(socket)
+    filters = Map.put(socket.assigns.filters, "page", page)
+    socket = assign(socket, filters: filters)
+    send(self(), :load_sitzungen)
     {:noreply, socket}
+  end
+
+  def handle_info(:load_sitzungen, socket) do
+    {:noreply,
+     socket
+     |> assign(:loading, true)
+     |> push_event("api_request", %{
+       method: "getSitzungen",
+       params: socket.assigns.filters,
+       request_id: "sitzungen_load"
+     })}
   end
 
   def handle_event("week_navigation", %{"direction" => direction}, socket) do
     current_week_start = socket.assigns.current_week_start
+
     new_week_start = case direction do
       "prev" -> Date.add(current_week_start, -7)
       "next" -> Date.add(current_week_start, 7)
+      _ -> current_week_start
     end
 
-    socket = assign(socket, :current_week_start, new_week_start)
-    socket = load_sitzungen(socket)
-    {:noreply, socket}
+    {:noreply, assign(socket, current_week_start: new_week_start)}
   end
 
   def handle_event("go_to_week", %{"date" => date_string}, socket) do
     case Date.from_iso8601(date_string) do
       {:ok, date} ->
-        # Find the start of the week (Monday) for the given date
-        day_of_week = SharedLiveHelpers.get_day_of_week(date)
-        week_start = Date.add(date, -(day_of_week - 1))
-
-        socket = assign(socket, :current_week_start, week_start)
-        socket = load_sitzungen(socket)
-        {:noreply, socket}
+        # Calculate week start (Monday) for the given date
+        week_start = Date.add(date, -Date.day_of_week(date) + 1)
+        {:noreply, assign(socket, current_week_start: week_start)}
       _ ->
         {:noreply, socket}
     end
   end
 
-  def handle_event("edit_session", %{"session-id" => session_id}, socket) do
-    # You could redirect to an edit page or open a modal here
-    # For example:
-    # {:noreply, redirect(socket, to: ~p"/sitzungen/#{session_id}/edit")}
-
-    # Or you could assign the session to edit and show a modal
-    # socket = assign(socket, :editing_session, session_id)
-    # {:noreply, socket}
-
-    {:noreply, socket}
-  end
-
-  def handle_event("logout", _params, socket) do
-    SharedLiveHelpers.handle_logout(socket)
-  end
-
-  defp load_sitzungen(socket) do
-    try do
-      # Don't load if we don't have session data
-      if is_nil(socket.assigns.session_data) do
-        socket
-      else
-        socket = assign(socket, :loading, true)
-
-        # Convert filters to API parameters and add week range
-        week_start = socket.assigns.current_week_start
-        week_end = Date.add(week_start, 6)
-
-        params = socket.assigns.filters
-        |> Map.put("since", Date.to_string(week_start) <> "T00:00:00+00:00")
-        |> Map.put("until", Date.to_string(week_end) <> "T23:59:59+00:00")
-        |> Enum.filter(fn {_key, value} -> value != nil and value != "" end)
-        |> Enum.map(fn {key, value} -> {key, value} end)
-
-        case LtzfAp.ApiClient.get_sitzungen_with_headers(
-          socket.assigns.backend_url,
-          socket.assigns.session_data.api_key,
-          params
-        ) do
-          {:ok, sitzungen, headers} ->
-            pagination = SharedLiveHelpers.extract_pagination(headers)
-            socket =
-              socket
-              |> assign(:sitzungen, sitzungen)
-              |> assign(:pagination, pagination)
-              |> assign(:loading, false)
-              |> assign(:error, nil)
-
-            socket
-
-          {:error, _reason} ->
-            socket =
-              socket
-              |> assign(:sitzungen, [])
-              |> assign(:loading, false)
-              |> assign(:error, nil) # Don't show error for empty weeks
-
-            socket
-        end
-      end
-    rescue
-      _error ->
-        socket =
-          socket
-          |> assign(:sitzungen, [])
-          |> assign(:loading, false)
-          |> assign(:error, nil) # Don't show error for empty weeks
-
-        socket
+  # Helper functions for the template
+  defp format_date(date_string) when is_binary(date_string) do
+    case Date.from_iso8601(date_string) do
+      {:ok, date} -> Calendar.strftime(date, "%d.%m.%Y")
+      _ -> date_string
     end
   end
 
-  # Delegate to shared helpers
-  defdelegate format_time_remaining(expires_at), to: SharedLiveHelpers
-  defdelegate get_week_days(week_start), to: SharedLiveHelpers
-  defdelegate get_week_number(date), to: SharedLiveHelpers
-  defdelegate get_parliament_color(parlament), to: SharedLiveHelpers
+  defp format_date(_), do: "N/A"
 
-  def group_sitzungen_by_day(sitzungen) do
-    sitzungen
-    |> Enum.group_by(fn sitzung ->
-      case DateTime.from_iso8601(sitzung["termin"]) do
-        {:ok, datetime, _offset} -> Date.new!(datetime.year, datetime.month, datetime.day)
-        _ -> nil
+  defp truncate_text(text, max_length \\ 100)
+  defp truncate_text(text, max_length) when is_binary(text) do
+    if String.length(text) > max_length do
+      String.slice(text, 0, max_length) <> "..."
+    else
+      text
+    end
+  end
+
+  defp truncate_text(_, _max_length), do: "N/A"
+
+  defp format_time(time_string) when is_binary(time_string) do
+    case DateTime.from_iso8601(time_string) do
+      {:ok, datetime, _offset} ->
+        # Format as HH:MM in local timezone
+        Calendar.strftime(datetime, "%H:%M")
+      _ ->
+        # Fallback: try to extract time from the string
+        case String.split(time_string, "T") do
+          [_date, time_part] ->
+            case String.split(time_part, ":") do
+              [hour, minute | _] -> "#{hour}:#{minute}"
+              _ -> "N/A"
+            end
+          _ -> "N/A"
+        end
+    end
+  end
+
+  defp format_time(_), do: "N/A"
+
+  defp get_parliament_color("bundestag"), do: "bg-blue-500"
+  defp get_parliament_color("bundesrat"), do: "bg-green-500"
+  defp get_parliament_color("landtag"), do: "bg-purple-500"
+  defp get_parliament_color(_), do: "bg-gray-500"
+
+  defp get_gremium_display_name(gremium) when is_map(gremium) do
+    gremium["name"] || gremium["id"] || "Unbekannt"
+  end
+  defp get_gremium_display_name(gremium) when is_binary(gremium), do: gremium
+  defp get_gremium_display_name(_), do: "Unbekannt"
+
+  defp get_week_days(week_start) when is_struct(week_start, Date) do
+    Enum.map(0..6, fn day_offset ->
+      Date.add(week_start, day_offset)
+    end)
+  end
+
+  defp get_week_days(week_start) when is_binary(week_start) do
+    case Date.from_iso8601(week_start) do
+      {:ok, date} ->
+        Enum.map(0..6, fn day_offset ->
+          Date.add(date, day_offset)
+        end)
+      _ ->
+        []
+    end
+  end
+
+  defp get_week_days(_), do: []
+
+    defp get_week_number(date) when is_struct(date, Date) do
+    # Calculate ISO week number manually
+    {year, week} = :calendar.iso_week_number(Date.to_erl(date))
+    week
+  end
+
+  defp get_week_number(date_string) when is_binary(date_string) do
+    case Date.from_iso8601(date_string) do
+      {:ok, date} ->
+        {_year, week} = :calendar.iso_week_number(Date.to_erl(date))
+        week
+      _ -> 1
+    end
+  end
+
+  defp get_week_number(_), do: 1
+
+  defp group_sitzungen_by_day(sitzungen) do
+    Enum.group_by(sitzungen, fn sitzung ->
+      case sitzung do
+        %{"termin" => termin} when is_binary(termin) ->
+          case DateTime.from_iso8601(termin) do
+            {:ok, datetime, _offset} -> Date.to_string(datetime)
+            _ -> "unknown"
+          end
+        _ -> "unknown"
       end
     end)
-    |> Map.new(fn {date, sessions} -> {date, Enum.sort_by(sessions, & &1["termin"])} end)
   end
 
-  def format_time(termin) do
-    case DateTime.from_iso8601(termin) do
-      {:ok, datetime, _offset} ->
-        datetime
-        |> DateTime.to_time()
-        |> Time.to_string()
-        |> String.slice(0, 5)
-      _ -> "??:??"
-    end
+  defp extract_pagination_from_headers(headers) do
+    %{
+      total_count: parse_integer_header(headers["x-total-count"]),
+      total_pages: parse_integer_header(headers["x-total-pages"]),
+      current_page: parse_integer_header(headers["x-page"]) || 1,
+      per_page: parse_integer_header(headers["x-per-page"]) || 32
+    }
   end
 
-  def get_gremium_display_name(gremium) do
-    case gremium do
-      %{"name" => name, "parlament" => parlament, "wahlperiode" => wahlperiode} ->
-        "#{name} (#{parlament} #{wahlperiode})"
-      %{"name" => name, "parlament" => parlament} ->
-        "#{name} (#{parlament})"
-      %{"name" => name} ->
-        name
-      _ -> "Unbekanntes Gremium"
+  defp parse_integer_header(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {int, _} -> int
+      :error -> nil
     end
   end
+  defp parse_integer_header(_), do: nil
+
 end
