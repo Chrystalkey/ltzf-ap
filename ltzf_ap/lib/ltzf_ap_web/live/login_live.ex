@@ -21,8 +21,12 @@ defmodule LtzfApWeb.LoginLive do
     {:noreply, socket}
   end
 
+  def handle_event("connectivity_status", %{"status" => status, "message" => message}, socket) do
+    {:noreply, assign(socket, connectivity_status: String.to_existing_atom(status), connectivity_message: message)}
+  end
+
   def handle_event("connectivity_status", %{"status" => status}, socket) do
-    {:noreply, assign(socket, connectivity_status: String.to_existing_atom(status))}
+    {:noreply, assign(socket, connectivity_status: String.to_existing_atom(status), connectivity_message: nil)}
   end
 
   def handle_event("toggle_password", _params, socket) do
@@ -64,6 +68,8 @@ defmodule LtzfApWeb.LoginLive do
   defp connectivity_status_class(:checking), do: "text-blue-500"
   defp connectivity_status_class(:disconnected), do: "text-red-500"
   defp connectivity_status_class(:invalid_url), do: "text-yellow-500"
+  defp connectivity_status_class(:mixed_content_warning), do: "text-orange-500"
+  defp connectivity_status_class(:mixed_content_error), do: "text-red-500"
   defp connectivity_status_class(_), do: "text-gray-500"
 
   defp connectivity_status_text(:connected), do: "Connected"
@@ -71,5 +77,7 @@ defmodule LtzfApWeb.LoginLive do
   defp connectivity_status_text(:checking), do: "Checking..."
   defp connectivity_status_text(:disconnected), do: "Disconnected"
   defp connectivity_status_text(:invalid_url), do: "Invalid URL"
+  defp connectivity_status_text(:mixed_content_warning), do: "HTTPS/HTTP Warning"
+  defp connectivity_status_text(:mixed_content_error), do: "Mixed Content Blocked"
   defp connectivity_status_text(_), do: "Unknown"
 end

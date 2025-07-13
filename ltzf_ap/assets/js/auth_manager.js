@@ -4,6 +4,8 @@
 class AuthManager {
   constructor() {
     this.storageKey = 'ltzf_auth';
+    this.retryCount = 0;
+    this.maxRetries = 3;
   }
   
   async validateCredentials(backendUrl, apiKey) {
@@ -33,22 +35,29 @@ class AuthManager {
   }
   
   storeCredentials(backendUrl, apiKey, scope, expiresAt) {
-    const credentials = {
-      backendUrl,
-      apiKey: this.encryptApiKey(apiKey),
-      scope,
-      expiresAt: expiresAt.toISOString(),
-      createdAt: new Date().toISOString()
-    };
-    
-    sessionStorage.setItem(this.storageKey, JSON.stringify(credentials));
+    try {
+      const credentials = {
+        backendUrl,
+        apiKey: this.encryptApiKey(apiKey),
+        scope,
+        expiresAt: expiresAt.toISOString(),
+        createdAt: new Date().toISOString()
+      };
+      
+      // Use try-catch to handle potential sessionStorage access issues
+      sessionStorage.setItem(this.storageKey, JSON.stringify(credentials));
+      return true;
+    } catch (error) {
+      console.error('Failed to store credentials:', error);
+      return false;
+    }
   }
   
   getCredentials() {
-    const data = sessionStorage.getItem(this.storageKey);
-    if (!data) return null;
-    
     try {
+      const data = sessionStorage.getItem(this.storageKey);
+      if (!data) return null;
+      
       const credentials = JSON.parse(data);
       if (new Date(credentials.expiresAt) <= new Date()) {
         this.clearCredentials();
@@ -67,7 +76,11 @@ class AuthManager {
   }
   
   clearCredentials() {
-    sessionStorage.removeItem(this.storageKey);
+    try {
+      sessionStorage.removeItem(this.storageKey);
+    } catch (error) {
+      console.error('Failed to clear credentials:', error);
+    }
   }
   
   hasValidCredentials() {
@@ -93,20 +106,34 @@ class AuthManager {
     return new ApiClient(credentials.backendUrl, credentials.apiKey);
   }
   
-  // Validate stored credentials against backend
+  // Validate stored credentials against backend with retry logic
   async validateStoredCredentials() {
     const credentials = this.getCredentials();
     if (!credentials) {
       return { valid: false, error: 'No stored credentials' };
     }
     
+    // Prevent infinite retry loops
+    if (this.retryCount >= this.maxRetries) {
+      this.retryCount = 0;
+      this.clearCredentials();
+      return { valid: false, error: 'Too many validation attempts, please login again' };
+    }
+    
     try {
+      this.retryCount++;
       const client = new ApiClient(credentials.backendUrl, credentials.apiKey);
       await client.authStatus();
+      this.retryCount = 0; // Reset on success
       return { valid: true, credentials };
     } catch (error) {
-      this.clearCredentials();
-      return { valid: false, error: 'Stored credentials are invalid' };
+      console.error('Credential validation failed:', error);
+      if (this.retryCount >= this.maxRetries) {
+        this.clearCredentials();
+        return { valid: false, error: 'Stored credentials are invalid' };
+      }
+      // Return false but don't clear credentials yet, let retry logic handle it
+      return { valid: false, error: 'Validation failed, will retry' };
     }
   }
 }

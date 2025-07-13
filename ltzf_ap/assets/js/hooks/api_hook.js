@@ -7,6 +7,8 @@ const ApiHook = {
     this.authManager = new AuthManager();
     this.dataStore = new DataStore();
     this.requestId = 0;
+    this.sessionRestoreAttempts = 0;
+    this.maxSessionRestoreAttempts = 2;
     
     // Initialize API client if credentials are available
     this.initializeApiClient();
@@ -32,9 +34,13 @@ const ApiHook = {
         if (result.success) {
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + (data.remember_key ? 7 : 1));
-          this.authManager.storeCredentials(data.backend_url, data.api_key, result.scope, expiresAt);
-          this.apiClient = this.authManager.getApiClient();
-          this.pushEvent("auth_success", { credentials: { backend_url: data.backend_url, scope: result.scope, expires_at: expiresAt.toISOString() } });
+          const stored = this.authManager.storeCredentials(data.backend_url, data.api_key, result.scope, expiresAt);
+          if (stored) {
+            this.apiClient = this.authManager.getApiClient();
+            this.pushEvent("auth_success", { credentials: { backend_url: data.backend_url, scope: result.scope, expires_at: expiresAt.toISOString() } });
+          } else {
+            this.pushEvent("auth_failure", { error: "Failed to store credentials" });
+          }
         } else {
           this.pushEvent("auth_failure", { error: result.error });
         }
@@ -44,15 +50,40 @@ const ApiHook = {
     });
     
     this.handleEvent("restore_session", async () => {
+      // Prevent infinite restore attempts
+      if (this.sessionRestoreAttempts >= this.maxSessionRestoreAttempts) {
+        console.error('Too many session restore attempts, clearing credentials');
+        this.authManager.clearCredentials();
+        this.sessionRestoreAttempts = 0;
+        this.pushEvent("session_expired", { error: "Session restoration failed, please login again" });
+        return;
+      }
+      
+      this.sessionRestoreAttempts++;
+      
       try {
         const validation = await this.authManager.validateStoredCredentials();
         if (validation.valid) {
           this.apiClient = this.authManager.getApiClient();
+          this.sessionRestoreAttempts = 0; // Reset on success
           this.pushEvent("session_restored", { credentials: { backend_url: validation.credentials.backendUrl, scope: validation.credentials.scope, expires_at: validation.credentials.expiresAt } });
         } else {
-          this.pushEvent("session_expired", { error: validation.error });
+          // If validation failed but we haven't exceeded retries, don't clear credentials yet
+          if (validation.error.includes('will retry')) {
+            // Wait a bit before retrying
+            setTimeout(() => {
+              this.handleEvent("restore_session", {});
+            }, 1000);
+          } else {
+            this.authManager.clearCredentials();
+            this.sessionRestoreAttempts = 0;
+            this.pushEvent("session_expired", { error: validation.error });
+          }
         }
       } catch (error) {
+        console.error('Session restoration error:', error);
+        this.authManager.clearCredentials();
+        this.sessionRestoreAttempts = 0;
         this.pushEvent("session_expired", { error: error.message });
       }
     });
@@ -61,6 +92,7 @@ const ApiHook = {
       this.authManager.clearCredentials();
       this.dataStore.clear();
       this.apiClient = null;
+      this.sessionRestoreAttempts = 0;
       this.pushEvent("logout_complete", {});
     });
 
@@ -116,8 +148,14 @@ const ApiHook = {
   },
   
   initializeApiClient() {
-    try { if (this.authManager.hasValidCredentials()) this.apiClient = this.authManager.getApiClient(); }
-    catch (error) { /* Failed to initialize API client */ }
+    try { 
+      if (this.authManager.hasValidCredentials()) {
+        this.apiClient = this.authManager.getApiClient();
+      }
+    }
+    catch (error) { 
+      console.error('Failed to initialize API client:', error);
+    }
   },
   generateRequestId() { return `req_${++this.requestId}_${Date.now()}`; }
 };

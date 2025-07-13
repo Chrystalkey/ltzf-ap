@@ -11,6 +11,6 @@ services:
       - PORT=4000
       - SECRET_KEY_BASE="fIZ4rqtKq/5VQ+nJ/FRVw3f3RxZI+3CHMwM6dNmwwIqagl81dP9uaIf83YiwqMuh"
       - PHX_HOST=localhost
-      - DEFAULT_BACKEND_URL=DEFAULT_BACKEND_URL
+      - DEFAULT_BACKEND_URL="http://localhost:8080"
       - DNS_CLUSTER_QUERY=
     restart: unless-stopped

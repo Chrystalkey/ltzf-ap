@@ -3,8 +3,27 @@
 
 class ApiClient {
   constructor(baseUrl, apiKey) {
-    this.baseUrl = baseUrl;
+    this.baseUrl = this.normalizeBackendUrl(baseUrl);
     this.apiKey = apiKey;
+  }
+  
+  // Normalize backend URL to use HTTPS if frontend is HTTPS
+  normalizeBackendUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      
+      // If the frontend is served over HTTPS, force the backend to also use HTTPS
+      if (window.location.protocol === 'https:' && urlObj.protocol === 'http:') {
+        urlObj.protocol = 'https:';
+        console.warn('Mixed content detected: Converting backend URL from HTTP to HTTPS');
+        return urlObj.toString();
+      }
+      
+      return url;
+    } catch (error) {
+      console.error('Invalid backend URL:', error);
+      return url;
+    }
   }
   
   async request(endpoint, options = {}) {
@@ -28,7 +47,9 @@ class ApiClient {
       const response = await fetch(url, {
         method: options.method || 'GET',
         headers,
-        body: options.body
+        body: options.body,
+        mode: 'cors', // Ensure CORS is enabled
+        credentials: 'omit' // Don't send cookies to avoid mixed content issues
       });
       
       if (!response.ok) {
@@ -46,6 +67,14 @@ class ApiClient {
         headers: this.extractHeaders(response.headers)
       };
     } catch (error) {
+      // Handle specific HTTPS/mixed content errors
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        // Check if this is a mixed content error
+        if (window.location.protocol === 'https:' && this.baseUrl.startsWith('http:')) {
+          throw new Error('Mixed content error: HTTPS page trying to access HTTP API. Please use HTTPS for the backend URL or configure your reverse proxy to handle API requests.');
+        }
+        throw new Error('Network error - check CORS or server availability');
+      }
       throw new Error(`API request failed: ${error.message}`);
     }
   }
@@ -66,6 +95,7 @@ class ApiClient {
       const response = await fetch(url, {
         method: 'GET',
         mode: 'cors',
+        credentials: 'omit', // Don't send cookies to avoid mixed content issues
         headers: {
           'Accept': 'application/json, text/plain, */*',
           'Content-Type': 'application/json'
@@ -82,6 +112,10 @@ class ApiClient {
     } catch (error) {
       // Handle CORS and network errors
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        // Check if this is a mixed content error
+        if (window.location.protocol === 'https:' && this.baseUrl.startsWith('http:')) {
+          throw new Error('Mixed content error: HTTPS page trying to access HTTP API. Please use HTTPS for the backend URL or configure your reverse proxy to handle API requests.');
+        }
         throw new Error('Network error - check CORS or server availability');
       }
       throw new Error(`Ping failed: ${error.message}`);

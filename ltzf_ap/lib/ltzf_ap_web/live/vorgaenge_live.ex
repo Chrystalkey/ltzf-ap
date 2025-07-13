@@ -12,7 +12,8 @@ defmodule LtzfApWeb.VorgaengeLive do
       session_id: nil,
       auth_info: %{scope: "unknown"},
       session_data: %{expires_at: DateTime.utc_now()},
-      backend_url: nil
+      backend_url: nil,
+      session_restore_attempts: 0
     )
 
     # Trigger client-side session restoration
@@ -25,12 +26,28 @@ defmodule LtzfApWeb.VorgaengeLive do
       backend_url: credentials["backend_url"],
       auth_info: %{scope: credentials["scope"]},
       session_data: %{expires_at: credentials["expires_at"]},
-      session_id: "restored" # Set a session ID to indicate we have a session
+      session_id: "restored", # Set a session ID to indicate we have a session
+      session_restore_attempts: 0 # Reset attempts on success
     )
 
     # Load vorgaenge data
     send(self(), :load_vorgaenge)
     {:noreply, socket}
+  end
+
+  def handle_event("session_expired", %{"error" => error}, socket) do
+    # Increment restore attempts to prevent infinite loops
+    attempts = socket.assigns.session_restore_attempts + 1
+
+    if attempts >= 3 do
+      # Too many attempts, redirect to login
+      {:noreply, redirect(socket, to: ~p"/login")}
+    else
+      # Try again after a delay
+      socket = assign(socket, session_restore_attempts: attempts)
+      Process.send_after(self(), :retry_session_restore, 2000)
+      {:noreply, socket}
+    end
   end
 
   def handle_event("session_expired", _params, socket) do
@@ -45,14 +62,19 @@ defmodule LtzfApWeb.VorgaengeLive do
   end
 
   def handle_event("load_vorgaenge", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:loading, true)
-     |> push_event("api_request", %{
-       method: "getVorgaenge",
-       params: socket.assigns.filters,
-       request_id: "vorgaenge_load"
-     })}
+    # Only load if we have a valid session
+    if socket.assigns.session_id do
+      {:noreply,
+       socket
+       |> assign(:loading, true)
+       |> push_event("api_request", %{
+         method: "getVorgaenge",
+         params: socket.assigns.filters,
+         request_id: "vorgaenge_load"
+       })}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("api_response", %{"request_id" => "vorgaenge_load", "result" => result}, socket) do
@@ -88,14 +110,23 @@ defmodule LtzfApWeb.VorgaengeLive do
   end
 
   def handle_info(:load_vorgaenge, socket) do
-    {:noreply,
-     socket
-     |> assign(:loading, true)
-     |> push_event("api_request", %{
-       method: "getVorgaenge",
-       params: socket.assigns.filters,
-       request_id: "vorgaenge_load"
-     })}
+    # Only load if we have a valid session
+    if socket.assigns.session_id do
+      {:noreply,
+       socket
+       |> assign(:loading, true)
+       |> push_event("api_request", %{
+         method: "getVorgaenge",
+         params: socket.assigns.filters,
+         request_id: "vorgaenge_load"
+       })}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(:retry_session_restore, socket) do
+    {:noreply, push_event(socket, "restore_session", %{})}
   end
 
   # Helper functions for the template

@@ -50,6 +50,15 @@ const LoginHook = {
 
   async performConnectivityCheck(backendUrl) {
     try {
+      // Check for mixed content issues first
+      if (window.location.protocol === 'https:' && backendUrl.startsWith('http:')) {
+        this.pushEvent("connectivity_status", {
+          status: "mixed_content_warning",
+          message: "HTTPS frontend detected with HTTP backend. This may cause issues. Consider using HTTPS for the backend URL or configuring your reverse proxy."
+        });
+        return;
+      }
+      
       // Create a temporary API client for connectivity check
       const tempClient = new ApiClient(backendUrl, "");
       
@@ -59,11 +68,21 @@ const LoginHook = {
       // If successful, update status to connected
       this.pushEvent("connectivity_status", {status: "connected"});
     } catch (error) {
+      // Check if it's a mixed content error
+      if (error.message.includes('Mixed content error')) {
+        this.pushEvent("connectivity_status", {
+          status: "mixed_content_error",
+          message: "Mixed content blocked by browser. Please use HTTPS for the backend URL or configure your reverse proxy to handle API requests."
+        });
+        return;
+      }
+      
       // Fallback: try a HEAD request to the base URL
       try {
         const response = await fetch(backendUrl, {
           method: 'HEAD',
-          mode: 'cors'
+          mode: 'cors',
+          credentials: 'omit'
         });
         
         if (response.ok) {
@@ -72,7 +91,10 @@ const LoginHook = {
           throw new Error(`HTTP ${response.status}`);
         }
       } catch (fallbackError) {
-        this.pushEvent("connectivity_status", {status: "disconnected"});
+        this.pushEvent("connectivity_status", {
+          status: "disconnected",
+          message: "Cannot connect to backend. Check the URL and ensure the server is running."
+        });
       }
     }
   },
