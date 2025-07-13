@@ -1037,10 +1037,67 @@
 
                         <!-- Additional Links Section -->
                         <div class="mt-4">
-                          <h4 class="text-sm font-medium text-gray-700 mb-2">Zusätzliche Links</h4>
+                          <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-sm font-medium text-gray-700">Zusätzliche Links</h4>
+                            <button 
+                              phx-click="add_additional_link" 
+                              phx-value-station-index={index}
+                              class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+                              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                              </svg>
+                              Hinzufügen
+                            </button>
+                          </div>
+                          
+                          <%= if @adding_additional_link == index do %>
+                            <form phx-submit="save_new_additional_link" phx-value-station-index={index} class="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                              <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Link *</label>
+                                <input 
+                                  type="url" 
+                                  name="link" 
+                                  required
+                                  class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                                  placeholder="https://...">
+                              </div>
+                              <div class="flex gap-2">
+                                <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                  </svg>
+                                  OK
+                                </button>
+                                <button type="button" phx-click="cancel_add_additional_link" class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
+                                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                  </svg>
+                                </button>
+                              </div>
+                            </form>
+                          <% end %>
+
                           <div class="space-y-2">
-                            <!-- Placeholder for additional links -->
-                            <div class="text-sm text-gray-500 italic">Zusätzliche Links werden hier angezeigt</div>
+                            <%= if (station["additional_links"] || []) == [] do %>
+                              <div class="text-sm text-gray-500 italic">Keine zusätzlichen Links vorhanden</div>
+                            <% else %>
+                              <%= for {link, link_index} <- Enum.with_index(station["additional_links"] || []) do %>
+                                <div class="flex justify-between items-center p-2 bg-gray-50 rounded-md border border-gray-200">
+                                  <a href={link} target="_blank" class="text-sm text-indigo-600 hover:text-indigo-900 hover:underline truncate flex-1">
+                                    <%= link %>
+                                  </a>
+                                  <button
+                                    phx-click="remove_additional_link"
+                                    phx-value-station-index={index}
+                                    phx-value-link-index={link_index}
+                                    class="inline-flex items-center px-1 py-1 text-xs font-medium text-red-700 bg-red-100 border border-transparent rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 ml-2">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                  </button>
+                                </div>
+                              <% end %>
+                            <% end %>
                           </div>
                         </div>
                       </div>

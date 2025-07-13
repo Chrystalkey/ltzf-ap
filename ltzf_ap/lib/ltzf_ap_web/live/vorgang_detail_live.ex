@@ -418,6 +418,59 @@ defmodule LtzfApWeb.VorgangDetailLive do
     {:noreply, assign(socket, adding_station: nil)}
   end
 
+  def handle_event("add_additional_link", %{"station-index" => station_index}, socket) do
+    station_index = String.to_integer(station_index)
+    socket = assign(socket, adding_additional_link: station_index)
+    {:noreply, socket}
+  end
+
+  def handle_event("save_new_additional_link", %{"station-index" => station_index, "link" => link}, socket) do
+    station_index = String.to_integer(station_index)
+
+    if link != "" do
+      # Save current state to history before making changes
+      socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
+
+      stationen = socket.assigns.vorgang["stationen"] || []
+      station = Enum.at(stationen, station_index)
+      additional_links = station["additional_links"] || []
+
+      updated_station = Map.put(station, "additional_links", additional_links ++ [link])
+      updated_stationen = List.replace_at(stationen, station_index, updated_station)
+      new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
+
+      socket = assign_vorgang(socket, new_vorgang)
+      socket = assign(socket, adding_additional_link: nil)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("remove_additional_link", %{"station-index" => station_index, "link-index" => link_index}, socket) do
+    station_index = String.to_integer(station_index)
+    link_index = String.to_integer(link_index)
+
+    # Save current state to history before making changes
+    socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
+
+    stationen = socket.assigns.vorgang["stationen"] || []
+    station = Enum.at(stationen, station_index)
+    additional_links = station["additional_links"] || []
+
+    updated_additional_links = List.delete_at(additional_links, link_index)
+    updated_station = Map.put(station, "additional_links", updated_additional_links)
+    updated_stationen = List.replace_at(stationen, station_index, updated_station)
+    new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
+
+    socket = assign_vorgang(socket, new_vorgang)
+    {:noreply, socket}
+  end
+
+  def handle_event("cancel_add_additional_link", _params, socket) do
+    {:noreply, assign(socket, adding_additional_link: nil)}
+  end
+
   def handle_event("switch_station_tab", %{"station-index" => station_index, "tab" => tab}, socket) do
     station_index = String.to_integer(station_index)
     station_tabs = socket.assigns.station_tabs || %{}

@@ -39,6 +39,7 @@ defmodule LtzfAp.State do
       adding_lobbyregister: nil,
       adding_station: nil,
       adding_autor: nil,
+      adding_additional_link: nil,
 
       # UI state
       new_station_index: nil,
@@ -73,6 +74,7 @@ defmodule LtzfAp.State do
       adding_lobbyregister: map() | nil,
       adding_station: map() | nil,
       adding_autor: map() | nil,
+      adding_additional_link: non_neg_integer() | nil,
       new_station_index: non_neg_integer() | nil,
       collapsed_stations: MapSet.t(),
       station_tabs: map(),
@@ -166,6 +168,7 @@ defmodule LtzfAp.State do
       adding_lobbyregister: nil,
       adding_station: nil,
       adding_autor: nil,
+      adding_additional_link: nil,
       new_station_index: nil,
       collapsed_stations: MapSet.new(),
       station_tabs: %{},
