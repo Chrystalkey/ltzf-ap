@@ -3,7 +3,7 @@ defmodule LtzfApWeb.EditHandlers do
   Macros and helpers for common edit event handler patterns.
   """
 
-  defmacro edit_field_handlers(field_name, opts \\ []) do
+  defmacro edit_field_handlers(field_name, _opts \\ []) do
     quote do
       def handle_event("edit_#{unquote(field_name)}", _params, socket) do
         current_value = Map.get(socket.assigns.vorgang, unquote(field_name), "")

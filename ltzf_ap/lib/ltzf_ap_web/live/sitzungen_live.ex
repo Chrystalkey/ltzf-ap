@@ -199,7 +199,7 @@ defmodule LtzfApWeb.SitzungenLive do
 
     defp get_week_number(date) when is_struct(date, Date) do
     # Calculate ISO week number manually
-    {year, week} = :calendar.iso_week_number(Date.to_erl(date))
+    {_year, week} = :calendar.iso_week_number(Date.to_erl(date))
     week
   end
 

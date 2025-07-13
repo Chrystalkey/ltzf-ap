@@ -50,20 +50,15 @@ const LoginHook = {
 
   async performConnectivityCheck(backendUrl) {
     try {
-      console.log('Performing connectivity check for:', backendUrl);
-      
       // Create a temporary API client for connectivity check
       const tempClient = new ApiClient(backendUrl, "");
       
       // Try to ping the backend
       const result = await tempClient.ping();
-      console.log('Ping result:', result);
       
       // If successful, update status to connected
       this.pushEvent("connectivity_status", {status: "connected"});
     } catch (error) {
-      console.log("Ping failed, trying fallback check:", error);
-      
       // Fallback: try a HEAD request to the base URL
       try {
         const response = await fetch(backendUrl, {
@@ -72,13 +67,11 @@ const LoginHook = {
         });
         
         if (response.ok) {
-          console.log('Fallback connectivity check succeeded');
           this.pushEvent("connectivity_status", {status: "connected"});
         } else {
           throw new Error(`HTTP ${response.status}`);
         }
       } catch (fallbackError) {
-        console.log("Fallback connectivity check also failed:", fallbackError);
         this.pushEvent("connectivity_status", {status: "disconnected"});
       }
     }
@@ -110,7 +103,6 @@ const LoginHook = {
         this.pushEvent("auth_failure", {error: result.error});
       }
     } catch (error) {
-      console.error("Authentication failed:", error);
       this.pushEvent("auth_failure", {error: "Authentication failed: " + error.message});
     }
   }

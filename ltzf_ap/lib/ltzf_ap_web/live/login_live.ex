@@ -6,35 +6,21 @@ defmodule LtzfApWeb.LoginLive do
 
   def mount(_params, _session, socket) do
     backend_url = get_connect_params(socket)["backend_url"] || ""
-
-    socket =
-      assign(socket,
-        backend_url: backend_url,
-        api_key: "",
-        show_password: false,
-        remember_key: false,
-        loading: false,
-        error: nil,
-        connectivity_status: :unknown
-      )
-
+    socket = assign(socket, backend_url: backend_url, api_key: "", show_password: false, remember_key: false, loading: false, error: nil, connectivity_status: :unknown)
     {:ok, socket}
   end
 
   def handle_event("validate", %{"login" => params}, socket) do
-    backend_url = params["backend_url"] || ""
-    api_key = params["api_key"] || ""
-    remember_key = params["remember_key"] == "true"
-
-    # Update the socket with new values
-    socket = assign(socket, backend_url: backend_url, api_key: api_key, remember_key: remember_key)
-
+    socket = assign(socket,
+      backend_url: params["backend_url"] || "",
+      api_key: params["api_key"] || "",
+      remember_key: params["remember_key"] == "true"
+    )
     {:noreply, socket}
   end
 
   def handle_event("connectivity_status", %{"status" => status}, socket) do
-    status_atom = String.to_existing_atom(status)
-    {:noreply, assign(socket, connectivity_status: status_atom)}
+    {:noreply, assign(socket, connectivity_status: String.to_existing_atom(status))}
   end
 
   def handle_event("toggle_password", _params, socket) do
@@ -50,22 +36,12 @@ defmodule LtzfApWeb.LoginLive do
       {:noreply, assign(socket, error: "Please fill in all fields")}
     else
       socket = assign(socket, loading: true, error: nil)
-
-      # Trigger client-side authentication
-      {:noreply, push_event(socket, "authenticate", %{
-        backend_url: backend_url,
-        api_key: api_key,
-        remember_key: remember_key
-      })}
+      {:noreply, push_event(socket, "authenticate", %{backend_url: backend_url, api_key: api_key, remember_key: remember_key})}
     end
   end
 
   def handle_event("auth_success", %{"credentials" => _credentials}, socket) do
-    # Client has successfully authenticated
-    {:noreply,
-     socket
-     |> assign(:loading, false)
-     |> push_navigate(to: ~p"/dashboard", replace: true)}
+    {:noreply, socket |> assign(:loading, false) |> push_navigate(to: ~p"/dashboard", replace: true)}
   end
 
   def handle_event("auth_failure", %{"error" => error}, socket) do
@@ -74,10 +50,8 @@ defmodule LtzfApWeb.LoginLive do
 
   defp valid_url?(url) do
     case URI.parse(url) do
-      %URI{scheme: scheme, host: host} when scheme in ["http", "https"] and not is_nil(host) ->
-        true
-      _ ->
-        false
+      %URI{scheme: scheme, host: host} when scheme in ["http", "https"] and not is_nil(host) -> true
+      _ -> false
     end
   rescue
     _ -> false

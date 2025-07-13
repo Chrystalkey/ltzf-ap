@@ -112,7 +112,7 @@
         <!-- Info Box with Basic Data -->
         <div class="bg-white shadow rounded-lg p-4 mb-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">Grunddaten</h2>
-          <form phx-change="form_change" phx-submit="save" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <form phx-change="form_change" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Titel *
@@ -591,6 +591,184 @@
             </button>
           </div>
 
+          <%= if @adding_station do %>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+              <form phx-submit="save_new_station" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Titel</label>
+                    <input 
+                      type="text" 
+                      name="titel" 
+                      value={@adding_station["titel"]} 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                      placeholder="Optionaler Titel">
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Typ *</label>
+                    <select 
+                      name="typ" 
+                      value={@adding_station["typ"]}
+                      required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <option value="">Bitte wählen</option>
+                      <%= for typ <- @stationstypen do %>
+                        <option value={typ} selected={@adding_station["typ"] == typ}><%= typ %></option>
+                      <% end %>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Parlament *</label>
+                    <select 
+                      name="parlament" 
+                      value={@adding_station["parlament"]}
+                      required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <option value="">Bitte wählen</option>
+                      <%= for parlament <- @parlamente do %>
+                        <option value={parlament} selected={@adding_station["parlament"] == parlament}><%= parlament %></option>
+                      <% end %>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Startdatum *</label>
+                    <input 
+                      type="datetime-local" 
+                      name="zp_start" 
+                      value={@adding_station["zp_start"]} 
+                      required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Modifiziert</label>
+                    <input 
+                      type="datetime-local" 
+                      name="zp_modifiziert" 
+                      value={@adding_station["zp_modifiziert"]} 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Link</label>
+                    <input 
+                      type="url" 
+                      name="link" 
+                      value={@adding_station["link"]} 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                      placeholder="https://...">
+                  </div>
+                </div>
+
+                <!-- Gremium Section -->
+                <div class="p-3 bg-white rounded-md border border-gray-200">
+                  <h4 class="text-sm font-medium text-gray-700 mb-2">Gremium</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                      <input 
+                        type="text" 
+                        name="gremium_name" 
+                        value={@adding_station["gremium_name"]} 
+                        required
+                        class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                        placeholder="z.B. plenum">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">Wahlperiode *</label>
+                      <input 
+                        type="number" 
+                        name="gremium_wahlperiode" 
+                        value={@adding_station["gremium_wahlperiode"]} 
+                        required
+                        min="0"
+                        class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">Parlament *</label>
+                      <select 
+                        name="gremium_parlament" 
+                        value={@adding_station["gremium_parlament"]}
+                        required
+                        class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                        <option value="">Bitte wählen</option>
+                        <%= for parlament <- @parlamente do %>
+                          <option value={parlament} selected={@adding_station["gremium_parlament"] == parlament}><%= parlament %></option>
+                        <% end %>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">Link</label>
+                      <input 
+                        type="url" 
+                        name="gremium_link" 
+                        value={@adding_station["gremium_link"]} 
+                        class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                        placeholder="https://...">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Additional Fields -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Federführend</label>
+                    <div class="flex items-center">
+                      <input 
+                        type="checkbox" 
+                        name="gremium_federf" 
+                        value="true"
+                        checked={@adding_station["gremium_federf"]}
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                      <span class="ml-2 text-sm text-gray-700">Ja</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Trojanergefahr *</label>
+                    <select 
+                      name="trojanergefahr" 
+                      value={@adding_station["trojanergefahr"]}
+                      required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                      <%= for value <- 1..10 do %>
+                        <option value={value} selected={@adding_station["trojanergefahr"] == value}><%= value %></option>
+                      <% end %>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Schlagworte</label>
+                    <input 
+                      type="text" 
+                      name="schlagworte" 
+                      value={@adding_station["schlagworte"]} 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                      placeholder="kommagetrennt">
+                  </div>
+                </div>
+
+                <div class="flex gap-2">
+                  <button type="submit" class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Station hinzufügen
+                  </button>
+                  <button type="button" phx-click="cancel_add_station" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Abbrechen
+                  </button>
+                </div>
+              </form>
+            </div>
+          <% end %>
+
           <div class="space-y-4">
             <%= for {station, index} <- Enum.with_index(@vorgang["stationen"] || []) do %>
               <div 
@@ -608,9 +786,21 @@
                         </svg>
                       </div>
                       
-                      <!-- Station Number and Title -->
+                      <!-- Station Info (left side) -->
                       <div class="flex items-center space-x-2 flex-1">
-                        <h3 class="text-base font-medium text-gray-900">Station <%= index + 1 %></h3>
+                        <%= if get_in(station, ["gremium", "name"]) && get_in(station, ["gremium", "name"]) != "" do %>
+                          <span class="text-gray-500">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <%= get_in(station, ["gremium", "name"]) %>
+                          </span>
+                        <% end %>
+                        <%= if station["parlament"] && station["parlament"] != "" do %>
+                          <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                            <%= station["parlament"] %>
+                          </span>
+                        <% end %>
                         <%= if @new_station_index == index do %>
                           <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -621,7 +811,7 @@
                         <% end %>
                       </div>
                       
-                      <!-- Vital Info (compact) -->
+                      <!-- Vital Info (right side) -->
                       <div class="flex items-center space-x-4 text-sm text-gray-600">
                         <%= if station["titel"] && station["titel"] != "" do %>
                           <span class="font-medium"><%= station["titel"] %></span>
@@ -629,19 +819,6 @@
                         <%= if station["typ"] && station["typ"] != "" do %>
                           <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                             <%= station["typ"] %>
-                          </span>
-                        <% end %>
-                        <%= if station["parlament"] && station["parlament"] != "" do %>
-                          <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                            <%= station["parlament"] %>
-                          </span>
-                        <% end %>
-                        <%= if get_in(station, ["gremium", "name"]) && get_in(station, ["gremium", "name"]) != "" do %>
-                          <span class="text-gray-500">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                            <%= get_in(station, ["gremium", "name"]) %>
                           </span>
                         <% end %>
                         <%= if station["zp_start"] && station["zp_start"] != "" do %>

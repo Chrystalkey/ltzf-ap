@@ -9,33 +9,26 @@ defmodule LtzfApWeb.DashboardLive do
   @seconds_per_minute 60
 
   def mount(_params, _session, socket) do
-    # Initialize with default values and check for stored session
-    socket =
-      socket
+    socket = socket
       |> assign(:auth_info, %{scope: @unknown_scope})
       |> assign(:session_data, %{expires_at: DateTime.utc_now()})
       |> assign(:stats, %{"vorgaenge" => "—", "sitzungen" => "—", "enumerations" => "—"})
       |> assign(:loading, true)
       |> assign(:session_id, nil)
       |> assign(:backend_url, nil)
-
-    # Trigger client-side session restoration
     {:ok, push_event(socket, "restore_session", %{})}
   end
 
   def handle_event("session_restored", %{"credentials" => credentials}, socket) do
-    # Client has restored session, initialize data
     socket = assign(socket,
       backend_url: credentials["backend_url"],
       auth_info: %{scope: credentials["scope"]},
       session_data: %{expires_at: credentials["expires_at"]},
-      session_id: "restored", # Set a session ID to indicate we have a session
+      session_id: "restored",
       loading: false
     )
-
-    # Load dashboard stats
     send(self(), :load_stats)
-    {:noreply, socket} # Don't start timer immediately
+    {:noreply, socket}
   end
 
   def handle_event("session_expired", _params, socket) do
@@ -43,10 +36,7 @@ defmodule LtzfApWeb.DashboardLive do
   end
 
   def handle_event("logout", _params, socket) do
-    {:noreply,
-     socket
-     |> push_event("logout", %{})
-     |> redirect(to: ~p"/login")}
+    {:noreply, socket |> push_event("logout", %{}) |> redirect(to: ~p"/login")}
   end
 
   def handle_event("logout_complete", _params, socket) do
@@ -62,31 +52,20 @@ defmodule LtzfApWeb.DashboardLive do
   end
 
   def handle_info(:load_stats, socket) do
-    # Trigger client-side stats loading
-    event_data = %{
-      method: "loadDashboardStats",
-      params: [],
-      request_id: "dashboard_stats"
-    }
-
-    socket =
-      socket
+    socket = socket
       |> assign(:loading, true)
-      |> push_event("api_request", event_data)
-
+      |> push_event("api_request", %{method: "loadDashboardStats", params: [], request_id: "dashboard_stats"})
     {:noreply, socket}
   end
 
   def handle_info(:update_timer, socket) do
-    # Check if session is still valid
     case socket.assigns.session_data do
       %{expires_at: expires_at} when not is_nil(expires_at) ->
-        case DateTime.compare(DateTime.from_iso8601!(expires_at), DateTime.utc_now()) do
+        case DateTime.compare(DateTime.from_iso8601(expires_at), DateTime.utc_now()) do
           :gt -> {:noreply, socket}
           _ -> {:noreply, redirect(socket, to: ~p"/login")}
         end
-      _ ->
-        {:noreply, redirect(socket, to: ~p"/login")}
+      _ -> {:noreply, redirect(socket, to: ~p"/login")}
     end
   end
 
