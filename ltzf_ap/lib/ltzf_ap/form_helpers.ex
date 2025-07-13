@@ -198,6 +198,68 @@ defmodule LtzfAp.FormHelpers do
     end
   end
 
+  @doc """
+  Creates a new Document from form parameters.
+  """
+  @spec form_params_to_document(map()) :: map()
+  def form_params_to_document(params) do
+    document = %{
+      "typ" => params["typ"] || "",
+      "titel" => params["titel"] || "",
+      "kurztitel" => params["kurztitel"] || "",
+      "vorwort" => params["vorwort"] || "",
+      "volltext" => params["volltext"] || "",
+      "zusammenfassung" => params["zusammenfassung"] || "",
+      "link" => params["link"] || "",
+      "hash" => params["hash"] || "",
+      "drucksnr" => params["drucksnr"] || "",
+      "meinung" => parse_integer_or_default(params["meinung"], nil),
+      "schlagworte" => parse_schlagworte(params["schlagworte"]),
+      "autoren" => []
+    }
+
+    # Add datetime fields if they have valid values
+    document = if params["zp_modifiziert"] && params["zp_modifiziert"] != "" do
+      Map.put(document, "zp_modifiziert", parse_datetime_local(params["zp_modifiziert"]))
+    else
+      document
+    end
+
+    document = if params["zp_referenz"] && params["zp_referenz"] != "" do
+      Map.put(document, "zp_referenz", parse_datetime_local(params["zp_referenz"]))
+    else
+      document
+    end
+
+    if params["zp_erstellt"] && params["zp_erstellt"] != "" do
+      Map.put(document, "zp_erstellt", parse_datetime_local(params["zp_erstellt"]))
+    else
+      document
+    end
+  end
+
+  @doc """
+  Validates a Document object and returns errors if any.
+  """
+  @spec validate_document(map()) :: :ok | {:error, [String.t()]}
+  def validate_document(document) when is_map(document) do
+    errors = []
+    |> validate_required_if_present(document["typ"], "typ")
+    |> validate_required_if_present(document["titel"], "titel")
+    |> validate_required_if_present(document["volltext"], "volltext")
+    |> validate_required_if_present(document["link"], "link")
+    |> validate_required_if_present(document["hash"], "hash")
+    |> validate_required_if_present(document["zp_modifiziert"], "zp_modifiziert")
+    |> validate_required_if_present(document["zp_referenz"], "zp_referenz")
+    |> validate_enum_if_present(document["typ"], &Schemas.valid_doktyp?/1, "typ")
+    |> validate_meinung_range(document["meinung"])
+
+    case errors do
+      [] -> :ok
+      _ -> {:error, errors}
+    end
+  end
+
   # ============================================================================
   # PRIVATE HELPER FUNCTIONS
   # ============================================================================
@@ -321,4 +383,13 @@ defmodule LtzfAp.FormHelpers do
     end)
   end
   defp validate_stations(errors, _stations), do: errors
+
+  defp validate_meinung_range(errors, value) when is_integer(value) do
+    if value >= 1 and value <= 5 do
+      errors
+    else
+      ["meinung must be between 1 and 5" | errors]
+    end
+  end
+  defp validate_meinung_range(errors, _value), do: errors
 end

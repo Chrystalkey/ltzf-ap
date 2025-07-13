@@ -30,6 +30,7 @@ defmodule LtzfAp.State do
       vorgangstypen: [],
       stationstypen: [],
       parlamente: [],
+      dokumententypen: [],
 
       # Form states
       adding_id: nil,
@@ -37,10 +38,12 @@ defmodule LtzfAp.State do
       adding_initiator: nil,
       adding_lobbyregister: nil,
       adding_station: nil,
+      adding_autor: nil,
 
       # UI state
       new_station_index: nil,
       collapsed_stations: MapSet.new(),
+      station_tabs: %{},
       saving: false,
       save_success: false,
 
@@ -63,13 +66,16 @@ defmodule LtzfAp.State do
       vorgangstypen: [String.t()],
       stationstypen: [String.t()],
       parlamente: [String.t()],
+      dokumententypen: [String.t()],
       adding_id: map() | nil,
       adding_link: map() | nil,
       adding_initiator: map() | nil,
       adding_lobbyregister: map() | nil,
       adding_station: map() | nil,
+      adding_autor: map() | nil,
       new_station_index: non_neg_integer() | nil,
       collapsed_stations: MapSet.t(),
+      station_tabs: map(),
       saving: boolean(),
       save_success: boolean(),
       history: [map()]
@@ -153,13 +159,16 @@ defmodule LtzfAp.State do
       vorgangstypen: [],
       stationstypen: [],
       parlamente: [],
+      dokumententypen: [],
       adding_id: nil,
       adding_link: nil,
       adding_initiator: nil,
       adding_lobbyregister: nil,
       adding_station: nil,
+      adding_autor: nil,
       new_station_index: nil,
       collapsed_stations: MapSet.new(),
+      station_tabs: %{},
       saving: false,
       save_success: false,
       history: []
@@ -300,7 +309,8 @@ defmodule LtzfAp.State do
       vgidtypen: enumerations["vgidtypen"] || [],
       vorgangstypen: enumerations["vorgangstypen"] || [],
       stationstypen: enumerations["stationstypen"] || [],
-      parlamente: enumerations["parlamente"] || []
+      parlamente: enumerations["parlamente"] || [],
+      dokumententypen: enumerations["dokumententypen"] || []
     }
   end
 

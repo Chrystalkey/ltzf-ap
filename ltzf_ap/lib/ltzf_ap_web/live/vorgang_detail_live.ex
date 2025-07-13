@@ -8,6 +8,7 @@ defmodule LtzfApWeb.VorgangDetailLive do
   require Logger
 
   import LtzfApWeb.SharedHeader
+  import LtzfApWeb.DocumentComponent
 
   alias LtzfAp.{Schemas, FormHelpers, State}
 
@@ -417,6 +418,281 @@ defmodule LtzfApWeb.VorgangDetailLive do
     {:noreply, assign(socket, adding_station: nil)}
   end
 
+  def handle_event("switch_station_tab", %{"station-index" => station_index, "tab" => tab}, socket) do
+    station_index = String.to_integer(station_index)
+    station_tabs = socket.assigns.station_tabs || %{}
+    updated_tabs = Map.put(station_tabs, station_index, tab)
+    {:noreply, assign(socket, station_tabs: updated_tabs)}
+  end
+
+  # ============================================================================
+  # DOCUMENT MANAGEMENT HANDLERS
+  # ============================================================================
+
+    def handle_event("add_document", %{"station-index" => station_index, "document-type" => document_type}, socket) do
+    station_index = String.to_integer(station_index)
+
+    # Create new document with all required fields according to the OpenAPI spec
+    new_document = %{
+      "titel" => "",
+      "typ" => "",
+      "volltext" => "",
+      "hash" => "",
+      "link" => "",
+      "zp_modifiziert" => "",
+      "zp_referenz" => "",
+      "autoren" => []
+    }
+
+    # Save current state to history before making changes
+    socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
+
+    # Add document to the appropriate list in the station
+    stationen = socket.assigns.vorgang["stationen"] || []
+    station = Enum.at(stationen, station_index)
+
+    updated_station = case document_type do
+      "dokumente" ->
+        dokumente = station["dokumente"] || []
+        Map.put(station, "dokumente", dokumente ++ [new_document])
+      "stellungnahmen" ->
+        stellungnahmen = station["stellungnahmen"] || []
+        Map.put(station, "stellungnahmen", stellungnahmen ++ [new_document])
+    end
+
+    updated_stationen = List.replace_at(stationen, station_index, updated_station)
+    new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
+
+    socket = assign_vorgang(socket, new_vorgang)
+    {:noreply, socket}
+  end
+
+      def handle_event("update_document", %{"station-index" => station_index, "document-index" => document_index, "document-type" => document_type, "document" => document_params}, socket) do
+    station_index = String.to_integer(station_index)
+    document_index = String.to_integer(document_index)
+
+    # Save current state to history before making changes
+    socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
+
+    # Get the existing document to preserve unchanged fields
+    stationen = socket.assigns.vorgang["stationen"] || []
+    station = Enum.at(stationen, station_index)
+
+    existing_document = case document_type do
+      "dokumente" ->
+        dokumente = station["dokumente"] || []
+        Enum.at(dokumente, document_index) || %{}
+      "stellungnahmen" ->
+        stellungnahmen = station["stellungnahmen"] || []
+        Enum.at(stellungnahmen, document_index) || %{}
+    end
+
+            # Process document params according to OpenAPI spec
+    processed_params = FormHelpers.form_params_to_document(document_params)
+
+    # Merge with existing document to preserve unchanged fields
+    updated_document = Map.merge(existing_document, processed_params)
+
+    updated_station = case document_type do
+      "dokumente" ->
+        dokumente = station["dokumente"] || []
+        updated_dokumente = List.replace_at(dokumente, document_index, updated_document)
+        Map.put(station, "dokumente", updated_dokumente)
+      "stellungnahmen" ->
+        stellungnahmen = station["stellungnahmen"] || []
+        updated_stellungnahmen = List.replace_at(stellungnahmen, document_index, updated_document)
+        Map.put(station, "stellungnahmen", updated_stellungnahmen)
+    end
+
+    updated_stationen = List.replace_at(stationen, station_index, updated_station)
+    new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
+
+    socket = assign_vorgang(socket, new_vorgang)
+    {:noreply, socket}
+  end
+
+  def handle_event("remove_document", %{"station-index" => station_index, "document-index" => document_index, "document-type" => document_type}, socket) do
+    station_index = String.to_integer(station_index)
+    document_index = String.to_integer(document_index)
+
+    # Save current state to history before making changes
+    socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
+
+    # Remove document from the appropriate list
+    stationen = socket.assigns.vorgang["stationen"] || []
+    station = Enum.at(stationen, station_index)
+
+    updated_station = case document_type do
+      "dokumente" ->
+        dokumente = station["dokumente"] || []
+        updated_dokumente = List.delete_at(dokumente, document_index)
+        Map.put(station, "dokumente", updated_dokumente)
+      "stellungnahmen" ->
+        stellungnahmen = station["stellungnahmen"] || []
+        updated_stellungnahmen = List.delete_at(stellungnahmen, document_index)
+        Map.put(station, "stellungnahmen", updated_stellungnahmen)
+    end
+
+    updated_stationen = List.replace_at(stationen, station_index, updated_station)
+    new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
+
+    socket = assign_vorgang(socket, new_vorgang)
+    {:noreply, socket}
+  end
+
+  # ============================================================================
+  # AUTOREN MANAGEMENT HANDLERS
+  # ============================================================================
+
+  def handle_event("add_autor", %{"station-index" => station_index, "document-index" => document_index, "document-type" => document_type}, socket) do
+    station_index = String.to_integer(station_index)
+    document_index = String.to_integer(document_index)
+
+    # Create a unique key for this station-document combination
+    key = "#{station_index}-#{document_index}"
+
+    # Initialize adding_autor state if it doesn't exist
+    adding_autor = socket.assigns.adding_autor || %{}
+    updated_adding_autor = Map.put(adding_autor, key, true)
+
+    socket = assign(socket, adding_autor: updated_adding_autor)
+    {:noreply, socket}
+  end
+
+  def handle_event("save_new_autor", %{"station-index" => station_index, "document-index" => document_index, "document-type" => document_type} = params, socket) do
+    station_index = String.to_integer(station_index)
+    document_index = String.to_integer(document_index)
+
+    # Debug: Log the incoming params
+    IO.inspect(params, label: "save_new_autor params")
+
+    if params["organisation"] != "" do
+      new_autor_struct = FormHelpers.form_params_to_autor(params)
+
+      # Convert struct to map with string keys
+      new_autor = %{
+        "person" => new_autor_struct.person,
+        "organisation" => new_autor_struct.organisation,
+        "fachgebiet" => new_autor_struct.fachgebiet,
+        "lobbyregister" => new_autor_struct.lobbyregister
+      }
+
+      # Validate the autor
+      case FormHelpers.validate_autor(new_autor) do
+        :ok ->
+          # Save current state to history before making changes
+          socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
+
+          # Add autor to the document
+          stationen = socket.assigns.vorgang["stationen"] || []
+          station = Enum.at(stationen, station_index)
+
+          document = case document_type do
+            "dokumente" ->
+              dokumente = station["dokumente"] || []
+              Enum.at(dokumente, document_index) || %{}
+            "stellungnahmen" ->
+              stellungnahmen = station["stellungnahmen"] || []
+              Enum.at(stellungnahmen, document_index) || %{}
+          end
+
+          autoren = document["autoren"] || []
+          IO.inspect(autoren, label: "existing autoren")
+          updated_autoren = autoren ++ [new_autor]
+          IO.inspect(updated_autoren, label: "updated autoren")
+          updated_document = Map.put(document, "autoren", updated_autoren)
+
+          updated_station = case document_type do
+            "dokumente" ->
+              dokumente = station["dokumente"] || []
+              updated_dokumente = List.replace_at(dokumente, document_index, updated_document)
+              Map.put(station, "dokumente", updated_dokumente)
+            "stellungnahmen" ->
+              stellungnahmen = station["stellungnahmen"] || []
+              updated_stellungnahmen = List.replace_at(stellungnahmen, document_index, updated_document)
+              Map.put(station, "stellungnahmen", updated_stellungnahmen)
+          end
+
+          updated_stationen = List.replace_at(stationen, station_index, updated_station)
+          new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
+
+          # Clear adding_autor state
+          key = "#{station_index}-#{document_index}"
+          adding_autor = socket.assigns.adding_autor || %{}
+          updated_adding_autor = Map.delete(adding_autor, key)
+
+          socket = assign_vorgang(socket, new_vorgang)
+          socket = assign(socket, adding_autor: updated_adding_autor)
+          IO.inspect("Autor added successfully", label: "SUCCESS")
+          {:noreply, socket}
+
+        {:error, errors} ->
+          error_msg = "Invalid autor: #{Enum.join(errors, ", ")}"
+          state = State.set_error(socket.assigns, error_msg)
+          socket = assign(socket, Map.from_struct(state))
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("remove_autor", %{"station-index" => station_index, "document-index" => document_index, "document-type" => document_type, "autor-index" => autor_index}, socket) do
+    station_index = String.to_integer(station_index)
+    document_index = String.to_integer(document_index)
+    autor_index = String.to_integer(autor_index)
+
+    # Save current state to history before making changes
+    socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
+
+    # Remove autor from the document
+    stationen = socket.assigns.vorgang["stationen"] || []
+    station = Enum.at(stationen, station_index)
+
+    document = case document_type do
+      "dokumente" ->
+        dokumente = station["dokumente"] || []
+        Enum.at(dokumente, document_index) || %{}
+      "stellungnahmen" ->
+        stellungnahmen = station["stellungnahmen"] || []
+        Enum.at(stellungnahmen, document_index) || %{}
+    end
+
+    autoren = document["autoren"] || []
+    updated_autoren = List.delete_at(autoren, autor_index)
+    updated_document = Map.put(document, "autoren", updated_autoren)
+
+    updated_station = case document_type do
+      "dokumente" ->
+        dokumente = station["dokumente"] || []
+        updated_dokumente = List.replace_at(dokumente, document_index, updated_document)
+        Map.put(station, "dokumente", updated_dokumente)
+      "stellungnahmen" ->
+        stellungnahmen = station["stellungnahmen"] || []
+        updated_stellungnahmen = List.replace_at(stellungnahmen, document_index, updated_document)
+        Map.put(station, "stellungnahmen", updated_stellungnahmen)
+    end
+
+    updated_stationen = List.replace_at(stationen, station_index, updated_station)
+    new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
+
+    socket = assign_vorgang(socket, new_vorgang)
+    {:noreply, socket}
+  end
+
+  def handle_event("cancel_add_autor", %{"station-index" => station_index, "document-index" => document_index, "document-type" => document_type}, socket) do
+    station_index = String.to_integer(station_index)
+    document_index = String.to_integer(document_index)
+
+    # Clear adding_autor state
+    key = "#{station_index}-#{document_index}"
+    adding_autor = socket.assigns.adding_autor || %{}
+    updated_adding_autor = Map.delete(adding_autor, key)
+
+    socket = assign(socket, adding_autor: updated_adding_autor)
+    {:noreply, socket}
+  end
+
   # ============================================================================
   # INFO HANDLERS
   # ============================================================================
@@ -500,6 +776,8 @@ defmodule LtzfApWeb.VorgangDetailLive do
   defp parse_integer_or_default(value, default) when is_binary(value), do: Integer.parse(value) |> then(fn {int, _} -> int; :error -> default end)
   defp parse_integer_or_default(value, _default) when is_integer(value), do: value
   defp parse_integer_or_default(_value, default), do: default
+
+
 
 
 

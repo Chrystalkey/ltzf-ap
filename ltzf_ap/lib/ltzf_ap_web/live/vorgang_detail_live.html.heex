@@ -846,161 +846,229 @@
                 </div>
                 
                 <!-- Detailed Content (collapsible) -->
-                <div class={"border-t border-gray-200 transition-all duration-300 overflow-hidden #{if MapSet.member?(@collapsed_stations, index), do: "max-h-0", else: "max-h-screen"}"}>
-                  <div class="p-4 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Titel</label>
-                        <input 
-                          type="text" 
-                          name={"station[#{index}][titel]"} 
-                          value={station["titel"] || ""} 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                          placeholder="Optionaler Titel">
-                      </div>
-
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Typ *</label>
-                        <select 
-                          name={"station[#{index}][typ]"} 
-                          value={station["typ"] || ""}
-                          required
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                          <option value="">Bitte wählen</option>
-                          <%= for typ <- @stationstypen do %>
-                            <option value={typ} selected={station["typ"] == typ}><%= typ %></option>
-                          <% end %>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Parlament *</label>
-                        <select 
-                          name={"station[#{index}][parlament]"} 
-                          value={station["parlament"] || ""}
-                          required
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                          <option value="">Bitte wählen</option>
-                          <%= for parlament <- @parlamente do %>
-                            <option value={parlament} selected={station["parlament"] == parlament}><%= parlament %></option>
-                          <% end %>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Startdatum *</label>
-                        <input 
-                          type="datetime-local" 
-                          name={"station[#{index}][zp_start]"} 
-                          value={station["zp_start"] || ""} 
-                          required
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                      </div>
-
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Modifiziert</label>
-                        <input 
-                          type="datetime-local" 
-                          name={"station[#{index}][zp_modifiziert]"} 
-                          value={station["zp_modifiziert"] || ""} 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                      </div>
-
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Link</label>
-                        <input 
-                          type="url" 
-                          name={"station[#{index}][link]"} 
-                          value={station["link"] || ""} 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                          placeholder="https://...">
-                      </div>
+                <div class={"border-t border-gray-200 transition-all duration-300 #{if MapSet.member?(@collapsed_stations, index), do: "max-h-0 overflow-hidden", else: "max-h-none overflow-visible"}"}>
+                  <div class="p-4">
+                    <!-- Tab Navigation -->
+                    <div class="border-b border-gray-200 mb-4">
+                      <nav class="-mb-px flex space-x-8">
+                        <button 
+                          phx-click="switch_station_tab" 
+                          phx-value-station-index={index} 
+                          phx-value-tab="info"
+                          class={"py-2 px-1 border-b-2 font-medium text-sm #{if get_in(@station_tabs, [index]) == "info" || get_in(@station_tabs, [index]) == nil, do: "border-indigo-500 text-indigo-600", else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}"}>
+                          Station Info
+                        </button>
+                        <button 
+                          phx-click="switch_station_tab" 
+                          phx-value-station-index={index} 
+                          phx-value-tab="documents"
+                          class={"py-2 px-1 border-b-2 font-medium text-sm #{if get_in(@station_tabs, [index]) == "documents", do: "border-indigo-500 text-indigo-600", else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}"}>
+                          Dokumente
+                        </button>
+                        <button 
+                          phx-click="switch_station_tab" 
+                          phx-value-station-index={index} 
+                          phx-value-tab="stellungnahmen"
+                          class={"py-2 px-1 border-b-2 font-medium text-sm #{if get_in(@station_tabs, [index]) == "stellungnahmen", do: "border-indigo-500 text-indigo-600", else: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}"}>
+                          Stellungnahmen
+                        </button>
+                      </nav>
                     </div>
 
-                    <!-- Gremium Section -->
-                    <div class="p-3 bg-gray-50 rounded-md">
-                      <h4 class="text-sm font-medium text-gray-700 mb-2">Gremium</h4>
-                      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div>
-                          <label class="block text-xs font-medium text-gray-600 mb-1">Name *</label>
-                          <input 
-                            type="text" 
-                            name={"station[#{index}][gremium][name]"} 
-                            value={get_in(station, ["gremium", "name"]) || ""} 
-                            required
-                            class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
-                            placeholder="z.B. plenum">
-                        </div>
-                        <div>
-                          <label class="block text-xs font-medium text-gray-600 mb-1">Wahlperiode *</label>
-                          <input 
-                            type="number" 
-                            name={"station[#{index}][gremium][wahlperiode]"} 
-                            value={get_in(station, ["gremium", "wahlperiode"]) || ""} 
-                            required
-                            min="0"
-                            class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
-                        </div>
-                        <div>
-                          <label class="block text-xs font-medium text-gray-600 mb-1">Parlament *</label>
-                          <select 
-                            name={"station[#{index}][gremium][parlament]"} 
-                            value={get_in(station, ["gremium", "parlament"]) || ""}
-                            required
-                            class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
-                            <option value="">Bitte wählen</option>
-                            <%= for parlament <- @parlamente do %>
-                              <option value={parlament} selected={get_in(station, ["gremium", "parlament"]) == parlament}><%= parlament %></option>
-                            <% end %>
-                          </select>
-                        </div>
-                      </div>
-                      <div class="mt-2">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Gremium Link</label>
-                        <input 
-                          type="url" 
-                          name={"station[#{index}][gremium][link]"} 
-                          value={get_in(station, ["gremium", "link"]) || ""} 
-                          class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
-                          placeholder="https://...">
-                      </div>
-                    </div>
+                    <!-- Tab Content -->
+                    <div class="space-y-4 overflow-visible min-h-0">
+                      <!-- Station Info Tab -->
+                      <div class={"#{if get_in(@station_tabs, [index]) == "info" || get_in(@station_tabs, [index]) == nil, do: "", else: "hidden"}"}>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Titel</label>
+                            <input 
+                              type="text" 
+                              name={"station[#{index}][titel]"} 
+                              value={station["titel"] || ""} 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                              placeholder="Optionaler Titel">
+                          </div>
 
-                    <!-- Additional Fields -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Federführend</label>
-                        <label class="flex items-center">
-                          <input 
-                            type="checkbox" 
-                            name={"station[#{index}][gremium_federf]"} 
-                            value="true"
-                            checked={station["gremium_federf"] || false}
-                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                          <span class="ml-2 text-sm text-gray-700">Federführendes Gremium</span>
-                        </label>
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Typ *</label>
+                            <select 
+                              name={"station[#{index}][typ]"} 
+                              value={station["typ"] || ""}
+                              required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                              <option value="">Bitte wählen</option>
+                              <%= for typ <- @stationstypen do %>
+                                <option value={typ} selected={station["typ"] == typ}><%= typ %></option>
+                              <% end %>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Parlament *</label>
+                            <select 
+                              name={"station[#{index}][parlament]"} 
+                              value={station["parlament"] || ""}
+                              required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                              <option value="">Bitte wählen</option>
+                              <%= for parlament <- @parlamente do %>
+                                <option value={parlament} selected={station["parlament"] == parlament}><%= parlament %></option>
+                              <% end %>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Startdatum *</label>
+                            <input 
+                              type="datetime-local" 
+                              name={"station[#{index}][zp_start]"} 
+                              value={station["zp_start"] || ""} 
+                              required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Modifiziert</label>
+                            <input 
+                              type="datetime-local" 
+                              name={"station[#{index}][zp_modifiziert]"} 
+                              value={station["zp_modifiziert"] || ""} 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Link</label>
+                            <input 
+                              type="url" 
+                              name={"station[#{index}][link]"} 
+                              value={station["link"] || ""} 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                              placeholder="https://...">
+                          </div>
+                        </div>
+
+                        <!-- Gremium Section -->
+                        <div class="p-3 bg-gray-50 rounded-md mt-4">
+                          <h4 class="text-sm font-medium text-gray-700 mb-2">Gremium</h4>
+                          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                              <label class="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                              <input 
+                                type="text" 
+                                name={"station[#{index}][gremium][name]"} 
+                                value={get_in(station, ["gremium", "name"]) || ""} 
+                                required
+                                class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                                placeholder="z.B. plenum">
+                            </div>
+                            <div>
+                              <label class="block text-xs font-medium text-gray-600 mb-1">Wahlperiode *</label>
+                              <input 
+                                type="number" 
+                                name={"station[#{index}][gremium][wahlperiode]"} 
+                                value={get_in(station, ["gremium", "wahlperiode"]) || ""} 
+                                required
+                                min="0"
+                                class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                            </div>
+                            <div>
+                              <label class="block text-xs font-medium text-gray-600 mb-1">Parlament *</label>
+                              <select 
+                                name={"station[#{index}][gremium][parlament]"} 
+                                value={get_in(station, ["gremium", "parlament"]) || ""}
+                                required
+                                class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                                <option value="">Bitte wählen</option>
+                                <%= for parlament <- @parlamente do %>
+                                  <option value={parlament} selected={get_in(station, ["gremium", "parlament"]) == parlament}><%= parlament %></option>
+                                <% end %>
+                              </select>
+                            </div>
+                          </div>
+                          <div class="mt-2">
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Gremium Link</label>
+                            <input 
+                              type="url" 
+                              name={"station[#{index}][gremium][link]"} 
+                              value={get_in(station, ["gremium", "link"]) || ""} 
+                              class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                              placeholder="https://...">
+                          </div>
+                        </div>
+
+                        <!-- Additional Fields -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Federführend</label>
+                            <label class="flex items-center">
+                              <input 
+                                type="checkbox" 
+                                name={"station[#{index}][gremium_federf]"} 
+                                value="true"
+                                checked={station["gremium_federf"] || false}
+                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                              <span class="ml-2 text-sm text-gray-700">Federführendes Gremium</span>
+                            </label>
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Trojanergefahr</label>
+                            <input 
+                              type="number" 
+                              name={"station[#{index}][trojanergefahr]"} 
+                              value={station["trojanergefahr"] || ""} 
+                              min="1"
+                              max="10"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                              placeholder="1-10">
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Schlagworte</label>
+                            <input 
+                              type="text" 
+                              name={"station[#{index}][schlagworte]"} 
+                              value={if station["schlagworte"], do: Enum.join(station["schlagworte"], ", "), else: ""} 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                              placeholder="kommagetrennt">
+                          </div>
+                        </div>
+
+                        <!-- Additional Links Section -->
+                        <div class="mt-4">
+                          <h4 class="text-sm font-medium text-gray-700 mb-2">Zusätzliche Links</h4>
+                          <div class="space-y-2">
+                            <!-- Placeholder for additional links -->
+                            <div class="text-sm text-gray-500 italic">Zusätzliche Links werden hier angezeigt</div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Trojanergefahr</label>
-                        <input 
-                          type="number" 
-                          name={"station[#{index}][trojanergefahr]"} 
-                          value={station["trojanergefahr"] || ""} 
-                          min="1"
-                          max="10"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                          placeholder="1-10">
+                      <!-- Documents Tab -->
+                      <div class={"#{if get_in(@station_tabs, [index]) == "documents", do: "", else: "hidden"} overflow-visible"}>
+                        <.document_list
+                          title="Dokumente"
+                          station_index={index}
+                          document_type="dokumente"
+                          documents={station["dokumente"] || []}
+                          dokumententypen={@dokumententypen}
+                          add_button_text="Dokument hinzufügen"
+                          empty_state_text="Dokumente"
+                          adding_autor={@adding_autor} />
                       </div>
 
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Schlagworte</label>
-                        <input 
-                          type="text" 
-                          name={"station[#{index}][schlagworte]"} 
-                          value={if station["schlagworte"], do: Enum.join(station["schlagworte"], ", "), else: ""} 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                          placeholder="kommagetrennt">
+                      <!-- Stellungnahmen Tab -->
+                      <div class={"#{if get_in(@station_tabs, [index]) == "stellungnahmen", do: "", else: "hidden"} overflow-visible"}>
+                        <.document_list
+                          title="Stellungnahmen"
+                          station_index={index}
+                          document_type="stellungnahmen"
+                          documents={station["stellungnahmen"] || []}
+                          dokumententypen={@dokumententypen}
+                          add_button_text="Stellungnahme hinzufügen"
+                          empty_state_text="Stellungnahmen"
+                          adding_autor={@adding_autor} />
                       </div>
                     </div>
                   </div>
