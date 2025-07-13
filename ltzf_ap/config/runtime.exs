@@ -38,6 +38,9 @@ if config_env() == :prod do
 
   config :ltzf_ap, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # Default backend URL for the login screen
+  config :ltzf_ap, :default_backend_url, System.get_env("DEFAULT_BACKEND_URL")
+
   config :ltzf_ap, LtzfApWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [

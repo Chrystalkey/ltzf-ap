@@ -55,6 +55,9 @@ config :ltzf_ap, LtzfApWeb.Endpoint,
 # Enable dev routes for dashboard and mailbox
 config :ltzf_ap, dev_routes: true
 
+# Default backend URL for development (can be overridden by environment variable)
+config :ltzf_ap, :default_backend_url, System.get_env("DEFAULT_BACKEND_URL")
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
 

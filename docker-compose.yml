@@ -1,0 +1,16 @@
+services:
+  ltzf-ap:
+    container_name: ltzf-ap
+    image: ltzf-ap
+    build:
+      context: ./ltzf_ap
+    ports:
+      - "4000:4000"
+    environment:
+      - MIX_ENV=prod
+      - PORT=4000
+      - SECRET_KEY_BASE="fIZ4rqtKq/5VQ+nJ/FRVw3f3RxZI+3CHMwM6dNmwwIqagl81dP9uaIf83YiwqMuh"
+      - PHX_HOST=localhost
+      - DEFAULT_BACKEND_URL=DEFAULT_BACKEND_URL
+      - DNS_CLUSTER_QUERY=
+    restart: unless-stopped
