@@ -1,0 +1,40 @@
+name: create and push a docker image to docker hub
+
+on:
+  push:
+    branches: ["main"]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{github.repository}}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: "Checkout repo"
+        uses: actions/checkout@v4
+      - name: "Log into docker"
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{env.REGISTRY}}
+          username: crystalkey
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: "Build & Push"
+        id: push
+        uses: docker/push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with: 
+          context: ./ltzf_ap
+          push: true
+          tags: crystalkey/ltzf-ap:0.1.0
+      - name: "Gen artifact attestation"
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-digest: ${{steps.push.output.digest}}
+          push-to-registry: true
