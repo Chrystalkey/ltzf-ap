@@ -515,7 +515,6 @@ defmodule LtzfAp.Schemas do
       "gremium" => if(station.gremium, do: gremium_to_map(station.gremium)),
       "gremium_federf" => station.gremium_federf,
       "link" => station.link,
-      "parlament" => station.parlament,
       "typ" => station.typ,
       "trojanergefahr" => station.trojanergefahr,
       "schlagworte" => station.schlagworte,

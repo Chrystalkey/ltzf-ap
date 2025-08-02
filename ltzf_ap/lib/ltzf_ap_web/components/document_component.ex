@@ -20,6 +20,20 @@ defmodule LtzfApWeb.DocumentComponent do
   end
   defp format_datetime_for_input(_), do: ""
 
+  # Helper function to get document safely (handles both ID strings and full objects)
+  defp get_document_safely(document) do
+    if is_binary(document) do
+      %{}
+    else
+      document || %{}
+    end
+  end
+
+  # Helper function to check if document is loading (is an ID string)
+  defp document_loading?(document) do
+    is_binary(document)
+  end
+
   def document_list(assigns) do
     ~H"""
     <div class="space-y-4 overflow-visible">
@@ -48,7 +62,26 @@ defmodule LtzfApWeb.DocumentComponent do
       <% else %>
         <div class="space-y-4">
           <%= for {document, document_index} <- Enum.with_index(@documents) do %>
-            <div class="border border-gray-200 rounded-lg p-4 overflow-visible">
+            <%= if document_loading?(document) do %>
+              <div class="border border-gray-200 rounded-lg p-4 overflow-visible">
+                <div class="flex justify-between items-start mb-4">
+                  <div class="flex-1">
+                    <div class="animate-pulse">
+                      <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="animate-pulse">
+                  <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                  <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                  <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                  <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            <% else %>
+              <% document = get_document_safely(document) %>
+              <div class="border border-gray-200 rounded-lg p-4 overflow-visible">
               <div class="flex justify-between items-start mb-4">
                 <div class="flex-1">
                   <h4 class="text-sm font-medium text-gray-900">
@@ -333,6 +366,7 @@ defmodule LtzfApWeb.DocumentComponent do
               </div>
             </div>
           <% end %>
+        <% end %>
         </div>
       <% end %>
     </div>

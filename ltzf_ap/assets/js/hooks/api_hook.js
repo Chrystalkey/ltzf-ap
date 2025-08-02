@@ -124,6 +124,7 @@ const ApiHook = {
     let result;
     if (method === 'getVorgangById') result = await this.apiClient[method](params.id);
     else if (method === 'putVorgangById') result = await this.apiClient[method](params.id, params.data);
+    else if (method === 'getDocumentById') result = await this.apiClient[method](params.apiId);
     else if (method === 'loadEnumerations') result = await this.apiClient[method]();
     else if (method === 'getEnumerations') {
       if (Array.isArray(params) && params.length >= 1) result = await this.apiClient[method](params[0], params[1] || {});

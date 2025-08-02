@@ -95,7 +95,6 @@ defmodule LtzfAp.FormHelpers do
     station = %{
       "titel" => params["titel"] || "",
       "typ" => params["typ"] || "",
-      "parlament" => params["parlament"] || "",
       "link" => params["link"] || "",
       "gremium" => gremium,
       "gremium_federf" => params["gremium_federf"] == "true",
@@ -127,7 +126,6 @@ defmodule LtzfAp.FormHelpers do
     station
     |> update_station_field(params, "titel")
     |> update_station_field(params, "typ")
-    |> update_station_field(params, "parlament")
     |> update_station_field(params, "zp_start")
     |> update_station_field(params, "zp_modifiziert")
     |> update_station_field(params, "link")
@@ -173,9 +171,9 @@ defmodule LtzfAp.FormHelpers do
     |> validate_required_if_present(station["typ"], "typ")
     |> validate_required_if_present(station["dokumente"], "dokumente")
     |> validate_required_if_present(station["zp_start"], "zp_start")
-    |> validate_required_if_present(station["parlament"], "parlament")
+    |> validate_required_if_present(station["gremium"], "gremium")
     |> validate_enum_if_present(station["typ"], &Schemas.valid_stationstyp?/1, "typ")
-    |> validate_enum_if_present(station["parlament"], &Schemas.valid_parlament?/1, "parlament")
+    |> validate_gremium(station["gremium"])
     |> validate_trojanergefahr(station["trojanergefahr"])
 
     case errors do
@@ -392,4 +390,13 @@ defmodule LtzfAp.FormHelpers do
     end
   end
   defp validate_meinung_range(errors, _value), do: errors
+
+  defp validate_gremium(errors, gremium) when is_map(gremium) do
+    errors
+    |> validate_required(gremium["parlament"], "gremium.parlament")
+    |> validate_required(gremium["name"], "gremium.name")
+    |> validate_required(gremium["wahlperiode"], "gremium.wahlperiode")
+    |> validate_enum_if_present(gremium["parlament"], &Schemas.valid_parlament?/1, "gremium.parlament")
+  end
+  defp validate_gremium(errors, _gremium), do: errors
 end

@@ -261,6 +261,12 @@ class ApiClient {
     return response.data;
   }
   
+  // Documents
+  async getDocumentById(apiId) {
+    const response = await this.request(`/api/v1/dokument/${apiId}`);
+    return response.data;
+  }
+  
   // Sitzungen (Sessions)
   async getSitzungen(params = {}) {
     try {

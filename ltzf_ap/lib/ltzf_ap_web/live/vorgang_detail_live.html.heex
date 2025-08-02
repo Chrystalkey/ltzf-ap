@@ -579,17 +579,18 @@
 
         <!-- Stations Section -->
         <div class="bg-white shadow rounded-lg p-4 mt-6" id="stations-container">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-medium text-gray-900">Stationen *</h2>
-            <button 
-              phx-click="add_station" 
-              class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-              </svg>
-              Station hinzufügen
-            </button>
-          </div>
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-medium text-gray-900">Stationen *</h2>
+              <button 
+                type="button"
+                phx-click="add_station" 
+                class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Station hinzufügen
+              </button>
+            </div>
 
           <%= if @adding_station do %>
             <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
@@ -619,19 +620,7 @@
                     </select>
                   </div>
 
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Parlament *</label>
-                    <select 
-                      name="parlament" 
-                      value={@adding_station["parlament"]}
-                      required
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                      <option value="">Bitte wählen</option>
-                      <%= for parlament <- @parlamente do %>
-                        <option value={parlament} selected={@adding_station["parlament"] == parlament}><%= parlament %></option>
-                      <% end %>
-                    </select>
-                  </div>
+
 
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Startdatum *</label>
@@ -796,9 +785,9 @@
                             <%= get_in(station, ["gremium", "name"]) %>
                           </span>
                         <% end %>
-                        <%= if station["parlament"] && station["parlament"] != "" do %>
+                        <%= if get_in(station, ["gremium", "parlament"]) && get_in(station, ["gremium", "parlament"]) != "" do %>
                           <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                            <%= station["parlament"] %>
+                            <%= get_in(station, ["gremium", "parlament"]) %>
                           </span>
                         <% end %>
                         <%= if @new_station_index == index do %>
@@ -834,6 +823,7 @@
                     
                     <!-- Remove Button -->
                     <button 
+                      type="button"
                       phx-click="remove_station" 
                       phx-value-index={index}
                       phx-stop-propagation="true"
@@ -852,6 +842,7 @@
                     <div class="border-b border-gray-200 mb-4">
                       <nav class="-mb-px flex space-x-8">
                         <button 
+                          type="button"
                           phx-click="switch_station_tab" 
                           phx-value-station-index={index} 
                           phx-value-tab="info"
@@ -859,6 +850,7 @@
                           Station Info
                         </button>
                         <button 
+                          type="button"
                           phx-click="switch_station_tab" 
                           phx-value-station-index={index} 
                           phx-value-tab="documents"
@@ -866,6 +858,7 @@
                           Dokumente
                         </button>
                         <button 
+                          type="button"
                           phx-click="switch_station_tab" 
                           phx-value-station-index={index} 
                           phx-value-tab="stellungnahmen"
@@ -886,6 +879,7 @@
                               type="text" 
                               name={"station[#{index}][titel]"} 
                               value={station["titel"] || ""} 
+                              phx-change="form_change"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                               placeholder="Optionaler Titel">
                           </div>
@@ -895,6 +889,7 @@
                             <select 
                               name={"station[#{index}][typ]"} 
                               value={station["typ"] || ""}
+                              phx-change="form_change"
                               required
                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                               <option value="">Bitte wählen</option>
@@ -904,19 +899,7 @@
                             </select>
                           </div>
 
-                          <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Parlament *</label>
-                            <select 
-                              name={"station[#{index}][parlament]"} 
-                              value={station["parlament"] || ""}
-                              required
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                              <option value="">Bitte wählen</option>
-                              <%= for parlament <- @parlamente do %>
-                                <option value={parlament} selected={station["parlament"] == parlament}><%= parlament %></option>
-                              <% end %>
-                            </select>
-                          </div>
+
 
                           <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Startdatum *</label>
@@ -924,6 +907,7 @@
                               type="datetime-local" 
                               name={"station[#{index}][zp_start]"} 
                               value={station["zp_start"] || ""} 
+                              phx-change="form_change"
                               required
                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                           </div>
@@ -934,6 +918,7 @@
                               type="datetime-local" 
                               name={"station[#{index}][zp_modifiziert]"} 
                               value={station["zp_modifiziert"] || ""} 
+                              phx-change="form_change"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                           </div>
 
@@ -943,6 +928,7 @@
                               type="url" 
                               name={"station[#{index}][link]"} 
                               value={station["link"] || ""} 
+                              phx-change="form_change"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                               placeholder="https://...">
                           </div>
@@ -958,6 +944,7 @@
                                 type="text" 
                                 name={"station[#{index}][gremium][name]"} 
                                 value={get_in(station, ["gremium", "name"]) || ""} 
+                                phx-change="form_change"
                                 required
                                 class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
                                 placeholder="z.B. plenum">
@@ -968,6 +955,7 @@
                                 type="number" 
                                 name={"station[#{index}][gremium][wahlperiode]"} 
                                 value={get_in(station, ["gremium", "wahlperiode"]) || ""} 
+                                phx-change="form_change"
                                 required
                                 min="0"
                                 class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
@@ -977,6 +965,7 @@
                               <select 
                                 name={"station[#{index}][gremium][parlament]"} 
                                 value={get_in(station, ["gremium", "parlament"]) || ""}
+                                phx-change="form_change"
                                 required
                                 class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
                                 <option value="">Bitte wählen</option>
@@ -988,12 +977,13 @@
                           </div>
                           <div class="mt-2">
                             <label class="block text-xs font-medium text-gray-600 mb-1">Gremium Link</label>
-                            <input 
-                              type="url" 
-                              name={"station[#{index}][gremium][link]"} 
-                              value={get_in(station, ["gremium", "link"]) || ""} 
-                              class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
-                              placeholder="https://...">
+                                                          <input 
+                                type="url" 
+                                name={"station[#{index}][gremium][link]"} 
+                                value={get_in(station, ["gremium", "link"]) || ""} 
+                                phx-change="form_change"
+                                class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                                placeholder="https://...">
                           </div>
                         </div>
 
@@ -1007,6 +997,7 @@
                                 name={"station[#{index}][gremium_federf]"} 
                                 value="true"
                                 checked={station["gremium_federf"] || false}
+                                phx-change="form_change"
                                 class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
                               <span class="ml-2 text-sm text-gray-700">Federführendes Gremium</span>
                             </label>
@@ -1018,6 +1009,7 @@
                               type="number" 
                               name={"station[#{index}][trojanergefahr]"} 
                               value={station["trojanergefahr"] || ""} 
+                              phx-change="form_change"
                               min="1"
                               max="10"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
@@ -1030,6 +1022,7 @@
                               type="text" 
                               name={"station[#{index}][schlagworte]"} 
                               value={if station["schlagworte"], do: Enum.join(station["schlagworte"], ", "), else: ""} 
+                              phx-change="form_change"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                               placeholder="kommagetrennt">
                           </div>
@@ -1040,6 +1033,7 @@
                           <div class="flex justify-between items-center mb-2">
                             <h4 class="text-sm font-medium text-gray-700">Zusätzliche Links</h4>
                             <button 
+                              type="button"
                               phx-click="add_additional_link" 
                               phx-value-station-index={index}
                               class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm">
@@ -1087,6 +1081,7 @@
                                     <%= link %>
                                   </a>
                                   <button
+                                    type="button"
                                     phx-click="remove_additional_link"
                                     phx-value-station-index={index}
                                     phx-value-link-index={link_index}
@@ -1143,6 +1138,7 @@
                 <p class="mt-1 text-sm text-gray-500">Fügen Sie die erste Station hinzu, um zu beginnen.</p>
                 <div class="mt-6">
                   <button 
+                    type="button"
                     phx-click="add_station" 
                     class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

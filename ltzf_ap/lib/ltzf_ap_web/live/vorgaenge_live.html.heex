@@ -140,7 +140,7 @@
               <div>
                 <span class="font-medium text-gray-700">Parlament:</span>
                 <span class="text-gray-900">
-                  <%= get_parlament_label(vorgang["wahlperiode"] && vorgang["stationen"] && List.first(vorgang["stationen"])["parlament"]) %>
+                  <%= get_parlament_label(vorgang["wahlperiode"] && vorgang["stationen"] && get_in(List.first(vorgang["stationen"]), ["gremium", "parlament"])) %>
                 </span>
               </div>
 

@@ -55,6 +55,9 @@ defmodule LtzfApWeb.VorgangDetailLive do
     # API result is already a map with string keys, use it directly
     state = State.update_vorgang(socket.assigns, result)
     socket = assign(socket, Map.from_struct(state))
+
+    # Extract document IDs and fetch documents
+    socket = load_documents_from_vorgang(socket)
     {:noreply, socket}
   end
 
@@ -83,6 +86,20 @@ defmodule LtzfApWeb.VorgangDetailLive do
     state = State.update_enumerations(socket.assigns, result)
     socket = assign(socket, Map.from_struct(state))
     {:noreply, socket}
+  end
+
+  def handle_event("api_response", %{"request_id" => request_id, "result" => result}, socket) do
+    # Handle document loading responses
+    if String.starts_with?(request_id, "document_load_") do
+      document_id = String.replace(request_id, "document_load_", "")
+      socket = handle_document_loaded(socket, document_id, result)
+      {:noreply, socket}
+    else
+      # Handle other API responses
+      state = State.set_error(socket.assigns, "Unknown request_id: #{request_id}")
+      socket = assign(socket, Map.from_struct(state))
+      {:noreply, socket}
+    end
   end
 
   def handle_event("api_response", %{"request_id" => _request_id, "error" => error}, socket) do
@@ -127,6 +144,11 @@ defmodule LtzfApWeb.VorgangDetailLive do
     # Handle vorgang params
     if Map.has_key?(params, "vorgang") do
       new_vorgang = FormHelpers.form_params_to_vorgang(params["vorgang"], new_vorgang)
+    end
+
+    # Handle station params
+    if Map.has_key?(params, "station") do
+      new_vorgang = update_stations_from_params(new_vorgang, params["station"])
     end
 
     socket = assign_vorgang(socket, new_vorgang)
@@ -269,7 +291,6 @@ defmodule LtzfApWeb.VorgangDetailLive do
     socket = assign(socket, adding_station: %{
       "titel" => "",
       "typ" => "",
-      "parlament" => "",
       "zp_start" => "",
       "link" => "",
       "gremium_name" => "",
@@ -527,18 +548,11 @@ defmodule LtzfApWeb.VorgangDetailLive do
     # Save current state to history before making changes
     socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
 
-    # Get the existing document to preserve unchanged fields
-    stationen = socket.assigns.vorgang["stationen"] || []
-    station = Enum.at(stationen, station_index)
+          # Get the existing document to preserve unchanged fields
+      stationen = socket.assigns.vorgang["stationen"] || []
+      station = Enum.at(stationen, station_index)
 
-    existing_document = case document_type do
-      "dokumente" ->
-        dokumente = station["dokumente"] || []
-        Enum.at(dokumente, document_index) || %{}
-      "stellungnahmen" ->
-        stellungnahmen = station["stellungnahmen"] || []
-        Enum.at(stellungnahmen, document_index) || %{}
-    end
+      existing_document = get_document_safely(station, document_type, document_index)
 
             # Process document params according to OpenAPI spec
     processed_params = FormHelpers.form_params_to_document(document_params)
@@ -640,14 +654,7 @@ defmodule LtzfApWeb.VorgangDetailLive do
           stationen = socket.assigns.vorgang["stationen"] || []
           station = Enum.at(stationen, station_index)
 
-          document = case document_type do
-            "dokumente" ->
-              dokumente = station["dokumente"] || []
-              Enum.at(dokumente, document_index) || %{}
-            "stellungnahmen" ->
-              stellungnahmen = station["stellungnahmen"] || []
-              Enum.at(stellungnahmen, document_index) || %{}
-          end
+          document = get_document_safely(station, document_type, document_index)
 
           autoren = document["autoren"] || []
           IO.inspect(autoren, label: "existing autoren")
@@ -702,14 +709,7 @@ defmodule LtzfApWeb.VorgangDetailLive do
     stationen = socket.assigns.vorgang["stationen"] || []
     station = Enum.at(stationen, station_index)
 
-    document = case document_type do
-      "dokumente" ->
-        dokumente = station["dokumente"] || []
-        Enum.at(dokumente, document_index) || %{}
-      "stellungnahmen" ->
-        stellungnahmen = station["stellungnahmen"] || []
-        Enum.at(stellungnahmen, document_index) || %{}
-    end
+    document = get_document_safely(station, document_type, document_index)
 
     autoren = document["autoren"] || []
     updated_autoren = List.delete_at(autoren, autor_index)
@@ -787,6 +787,93 @@ defmodule LtzfApWeb.VorgangDetailLive do
     })
   end
 
+  # ============================================================================
+  # DOCUMENT LOADING FUNCTIONS
+  # ============================================================================
+
+    defp load_documents_from_vorgang(socket) do
+    # Extract all document IDs from stations
+    document_ids = extract_document_ids_from_vorgang(socket.assigns.vorgang)
+
+    # Store document IDs for later reference
+    socket = assign(socket, document_ids: document_ids)
+
+    # Fetch each unique document
+    Enum.reduce(document_ids, socket, fn {id, _type}, acc_socket ->
+      push_event(acc_socket, "api_request", %{
+        method: "getDocumentById",
+        params: %{apiId: id},
+        request_id: "document_load_#{id}"
+      })
+    end)
+  end
+
+    defp extract_document_ids_from_vorgang(vorgang) do
+    stationen = vorgang["stationen"] || []
+
+    result = Enum.flat_map(stationen, fn station ->
+      dokumente = station["dokumente"] || []
+      stellungnahmen = station["stellungnahmen"] || []
+
+            # Extract string IDs (UUIDs) from documents
+      dokumente_ids = dokumente |> Enum.filter(&is_binary/1) |> Enum.map(fn id -> {id, "dokumente"} end)
+      stellungnahmen_ids = stellungnahmen |> Enum.filter(&is_binary/1) |> Enum.map(fn id -> {id, "stellungnahmen"} end)
+
+      dokumente_ids ++ stellungnahmen_ids
+    end)
+    |> Enum.uniq_by(fn {id, _type} -> id end)
+
+    result
+  end
+
+    defp handle_document_loaded(socket, document_id, document_data) do
+    # Update the document in the appropriate station
+    stationen = socket.assigns.vorgang["stationen"] || []
+
+    updated_stationen = Enum.map(stationen, fn station ->
+      # Check dokumente
+      if station["dokumente"] do
+        # Find and replace the document with matching ID
+        updated_dokumente = Enum.map(station["dokumente"], fn doc ->
+          if is_binary(doc) and doc == document_id do
+            document_data
+          else
+            doc
+          end
+        end)
+
+        Map.put(station, "dokumente", updated_dokumente)
+      else
+        station
+      end
+    end)
+
+    new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
+
+    # Force a more explicit state update to ensure LiveView detects the change
+    socket = assign_vorgang(socket, new_vorgang)
+    socket = assign(socket, :document_updated, true)
+    socket
+  end
+
+  # Helper function to get a document safely (handles both ID strings and full objects)
+  defp get_document_safely(station, document_type, document_index) do
+    documents = case document_type do
+      "dokumente" -> station["dokumente"] || []
+      "stellungnahmen" -> station["stellungnahmen"] || []
+    end
+
+    document = Enum.at(documents, document_index)
+
+    # If document is a string (ID), return empty map for now
+    # The document will be loaded asynchronously
+    if is_binary(document) do
+      %{}
+    else
+      document || %{}
+    end
+  end
+
   defp update_vorgang(socket) do
     push_event(socket, "api_request", %{
       method: "putVorgangById",
@@ -796,7 +883,10 @@ defmodule LtzfApWeb.VorgangDetailLive do
   end
 
   defp deep_copy_vorgang(vorgang) do
-    Jason.encode(vorgang) |> then(fn {:ok, json} -> Jason.decode!(json); _ -> vorgang end)
+    case Jason.encode(vorgang) do
+      {:ok, json} -> Jason.decode!(json)
+      _ -> vorgang
+    end
   end
 
   # ============================================================================
@@ -823,6 +913,88 @@ defmodule LtzfApWeb.VorgangDetailLive do
     lobbyregister = vorgang["lobbyregister"] || []
     if index < length(lobbyregister), do: Map.put(vorgang, "lobbyregister", List.delete_at(lobbyregister, index)), else: vorgang
   end
+
+  defp update_stations_from_params(vorgang, station_params) do
+    stationen = vorgang["stationen"] || []
+
+    updated_stationen = station_params
+    |> Enum.map(fn {index_str, station_param} ->
+      index = String.to_integer(index_str)
+      if index < length(stationen) do
+        station = Enum.at(stationen, index)
+        update_station_from_params(station, station_param)
+      else
+        nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+
+    Map.put(vorgang, "stationen", updated_stationen)
+  end
+
+  defp update_station_from_params(station, params) do
+    station
+    |> update_station_field(params, "titel")
+    |> update_station_field(params, "typ")
+    |> update_station_field(params, "zp_start")
+    |> update_station_field(params, "zp_modifiziert")
+    |> update_station_field(params, "link")
+    |> update_station_field(params, "gremium_federf", &parse_boolean/1)
+    |> update_station_field(params, "trojanergefahr", &parse_integer_or_default(&1, 1))
+    |> update_station_field(params, "schlagworte", &parse_schlagworte/1)
+    |> update_gremium_from_params(params)
+  end
+
+  defp update_gremium_from_params(station, params) do
+    if Map.has_key?(params, "gremium") do
+      gremium = station["gremium"] || %{}
+      updated_gremium = gremium
+      |> update_gremium_field(params["gremium"], "name")
+      |> update_gremium_field(params["gremium"], "wahlperiode", &parse_integer_or_default(&1, 0))
+      |> update_gremium_field(params["gremium"], "parlament")
+      |> update_gremium_field(params["gremium"], "link")
+
+      Map.put(station, "gremium", updated_gremium)
+    else
+      station
+    end
+  end
+
+  defp update_station_field(station, params, field) do
+    update_station_field(station, params, field, &(&1))
+  end
+
+  defp update_station_field(station, params, field, parser) do
+    case Map.get(params, field) do
+      nil -> station
+      value -> Map.put(station, field, parser.(value))
+    end
+  end
+
+  defp update_gremium_field(gremium, params, field) do
+    update_gremium_field(gremium, params, field, &(&1))
+  end
+
+  defp update_gremium_field(gremium, params, field, parser) do
+    case Map.get(params, field) do
+      nil -> gremium
+      value -> Map.put(gremium, field, parser.(value))
+    end
+  end
+
+  defp parse_boolean("true"), do: true
+  defp parse_boolean("false"), do: false
+  defp parse_boolean(true), do: true
+  defp parse_boolean(false), do: false
+  defp parse_boolean(_), do: false
+
+  defp parse_schlagworte(value) when is_binary(value) and value != "" do
+    value
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+  defp parse_schlagworte(_), do: []
 
 
 

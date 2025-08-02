@@ -8,7 +8,7 @@ defmodule LtzfApWeb.LoginLive do
     # Get default backend URL from configuration, fallback to connect params, then to empty string
     default_backend_url = Application.get_env(:ltzf_ap, :default_backend_url) || ""
     backend_url = get_connect_params(socket)["backend_url"] || default_backend_url
-    socket = assign(socket, backend_url: backend_url, api_key: "", show_password: false, remember_key: false, loading: false, error: nil, connectivity_status: :unknown)
+    socket = assign(socket, backend_url: backend_url, api_key: "", show_password: false, remember_key: false, loading: false, error: nil, connectivity_status: :unknown, connectivity_message: nil)
     {:ok, socket}
   end
 
