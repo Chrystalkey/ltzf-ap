@@ -630,9 +630,6 @@ defmodule LtzfApWeb.VorgangDetailLive do
     station_index = String.to_integer(station_index)
     document_index = String.to_integer(document_index)
 
-    # Debug: Log the incoming params
-    IO.inspect(params, label: "save_new_autor params")
-
     if params["organisation"] != "" do
       new_autor_struct = FormHelpers.form_params_to_autor(params)
 
@@ -657,9 +654,7 @@ defmodule LtzfApWeb.VorgangDetailLive do
           document = get_document_safely(station, document_type, document_index)
 
           autoren = document["autoren"] || []
-          IO.inspect(autoren, label: "existing autoren")
           updated_autoren = autoren ++ [new_autor]
-          IO.inspect(updated_autoren, label: "updated autoren")
           updated_document = Map.put(document, "autoren", updated_autoren)
 
           updated_station = case document_type do
@@ -683,7 +678,6 @@ defmodule LtzfApWeb.VorgangDetailLive do
 
           socket = assign_vorgang(socket, new_vorgang)
           socket = assign(socket, adding_autor: updated_adding_autor)
-          IO.inspect("Autor added successfully", label: "SUCCESS")
           {:noreply, socket}
 
         {:error, errors} ->

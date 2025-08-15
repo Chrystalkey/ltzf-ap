@@ -56,10 +56,7 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
-// Expose client-side modules globally for debugging
-window.ApiClient = ApiClient;
-window.AuthManager = AuthManager;
-window.DataStore = DataStore;
+
 
 
 

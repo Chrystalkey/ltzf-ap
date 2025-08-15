@@ -12,8 +12,7 @@ defmodule LtzfApWeb.VorgaengeLive do
       session_id: nil,
       auth_info: %{scope: "unknown"},
       session_data: %{expires_at: DateTime.utc_now()},
-      backend_url: nil,
-      session_restore_attempts: 0
+      backend_url: nil
     )
 
     # Trigger client-side session restoration
@@ -26,8 +25,7 @@ defmodule LtzfApWeb.VorgaengeLive do
       backend_url: credentials["backend_url"],
       auth_info: %{scope: credentials["scope"]},
       session_data: %{expires_at: credentials["expires_at"]},
-      session_id: "restored", # Set a session ID to indicate we have a session
-      session_restore_attempts: 0 # Reset attempts on success
+      session_id: "restored" # Set a session ID to indicate we have a session
     )
 
     # Load vorgaenge data
@@ -36,18 +34,7 @@ defmodule LtzfApWeb.VorgaengeLive do
   end
 
   def handle_event("session_expired", %{"error" => error}, socket) do
-    # Increment restore attempts to prevent infinite loops
-    attempts = socket.assigns.session_restore_attempts + 1
-
-    if attempts >= 3 do
-      # Too many attempts, redirect to login
-      {:noreply, redirect(socket, to: ~p"/login")}
-    else
-      # Try again after a delay
-      socket = assign(socket, session_restore_attempts: attempts)
-      Process.send_after(self(), :retry_session_restore, 2000)
-      {:noreply, socket}
-    end
+    {:noreply, redirect(socket, to: ~p"/login")}
   end
 
   def handle_event("session_expired", _params, socket) do

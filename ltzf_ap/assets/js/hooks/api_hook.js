@@ -7,16 +7,11 @@ const ApiHook = {
     this.authManager = new AuthManager();
     this.dataStore = new DataStore();
     this.requestId = 0;
-    this.sessionRestoreAttempts = 0;
-    this.maxSessionRestoreAttempts = 2;
     
     // Initialize API client if credentials are available
     this.initializeApiClient();
     
-    // Test event handler to see if events are being received
-    this.handleEvent("test", (data) => {
-      // Test event handler
-    });
+
 
     this.handleEvent("api_request", async (data) => {
       try {
@@ -50,40 +45,17 @@ const ApiHook = {
     });
     
     this.handleEvent("restore_session", async () => {
-      // Prevent infinite restore attempts
-      if (this.sessionRestoreAttempts >= this.maxSessionRestoreAttempts) {
-        console.error('Too many session restore attempts, clearing credentials');
-        this.authManager.clearCredentials();
-        this.sessionRestoreAttempts = 0;
-        this.pushEvent("session_expired", { error: "Session restoration failed, please login again" });
-        return;
-      }
-      
-      this.sessionRestoreAttempts++;
-      
       try {
         const validation = await this.authManager.validateStoredCredentials();
         if (validation.valid) {
           this.apiClient = this.authManager.getApiClient();
-          this.sessionRestoreAttempts = 0; // Reset on success
           this.pushEvent("session_restored", { credentials: { backend_url: validation.credentials.backendUrl, scope: validation.credentials.scope, expires_at: validation.credentials.expiresAt } });
         } else {
-          // If validation failed but we haven't exceeded retries, don't clear credentials yet
-          if (validation.error.includes('will retry')) {
-            // Wait a bit before retrying
-            setTimeout(() => {
-              this.handleEvent("restore_session", {});
-            }, 1000);
-          } else {
-            this.authManager.clearCredentials();
-            this.sessionRestoreAttempts = 0;
-            this.pushEvent("session_expired", { error: validation.error });
-          }
+          this.authManager.clearCredentials();
+          this.pushEvent("session_expired", { error: validation.error });
         }
       } catch (error) {
-        console.error('Session restoration error:', error);
         this.authManager.clearCredentials();
-        this.sessionRestoreAttempts = 0;
         this.pushEvent("session_expired", { error: error.message });
       }
     });
@@ -92,7 +64,6 @@ const ApiHook = {
       this.authManager.clearCredentials();
       this.dataStore.clear();
       this.apiClient = null;
-      this.sessionRestoreAttempts = 0;
       this.pushEvent("logout_complete", {});
     });
 

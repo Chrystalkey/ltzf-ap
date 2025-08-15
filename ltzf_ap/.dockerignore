@@ -22,7 +22,6 @@ deps/
 
 # Test files
 test/
-test_filter_debug.exs
 
 # Coverage
 cover/
