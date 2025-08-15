@@ -22,8 +22,10 @@ defmodule LtzfApWeb.Endpoint do
   plug Plug.Static,
     at: "/",
     from: :ltzf_ap,
-    gzip: false,
-    only: LtzfApWeb.static_paths()
+    gzip: true,
+    only: LtzfApWeb.static_paths(),
+    cache_control_for_etags: "public, max-age=86400",
+    only_matching: ["assets", "fonts", "images", "favicon", "robots"]
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.

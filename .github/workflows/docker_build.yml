@@ -34,3 +34,6 @@ jobs:
           context: ./ltzf_ap
           push: true
           tags: crystalkey/ltzf-ap:0.1.0
+          build-args: |
+            MIX_ENV=prod
+          platforms: linux/amd64

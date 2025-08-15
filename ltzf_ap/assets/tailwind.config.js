@@ -9,7 +9,9 @@ module.exports = {
   content: [
     "./js/**/*.js",
     "../lib/ltzf_ap_web.ex",
-    "../lib/ltzf_ap_web/**/*.*ex"
+    "../lib/ltzf_ap_web/**/*.ex",
+    "../lib/ltzf_ap_web/**/*.heex",
+    "../lib/ltzf_ap_web/**/*.eex"
   ],
   theme: {
     extend: {

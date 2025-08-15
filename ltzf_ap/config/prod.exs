@@ -10,5 +10,9 @@ config :ltzf_ap, LtzfApWeb.Endpoint, cache_static_manifest: "priv/static/cache_m
 # Do not print debug messages in production
 config :logger, level: :info
 
+# Force SSL in production - will be overridden by runtime.exs when BEHIND_PROXY=true
+config :ltzf_ap, LtzfApWeb.Endpoint,
+  force_ssl: [hsts: true, rewrite_on: [:x_forwarded_proto]]
+
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.

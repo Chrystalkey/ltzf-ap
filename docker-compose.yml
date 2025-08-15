@@ -13,4 +13,5 @@ services:
       - PHX_HOST=localhost
       - DEFAULT_BACKEND_URL="http://localhost:8080"
       - DNS_CLUSTER_QUERY=
+      - BEHIND_PROXY=true
     restart: unless-stopped

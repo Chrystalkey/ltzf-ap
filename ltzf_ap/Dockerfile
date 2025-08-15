@@ -27,15 +27,20 @@ COPY config/runtime.exs config/
 COPY priv priv
 COPY assets assets
 
-# Compile assets (skip esbuild, only use tailwind)
-RUN mix tailwind default --minify
-RUN mix phx.digest
-
 # Copy source code
 COPY lib lib
 
+# Build assets (always build to ensure they exist)
+RUN mkdir -p priv/static/assets
+RUN mix tailwind ltzf_ap --minify
+RUN mix esbuild ltzf_ap --minify
+RUN mix assets.deploy
+
 # Compile the release
 RUN mix do compile, release
+
+# Ensure static files are included in the release
+RUN mkdir -p _build/prod/rel/ltzf_ap/priv && cp -r priv/static _build/prod/rel/ltzf_ap/priv/
 
 # Start a new build stage
 FROM alpine:3.18

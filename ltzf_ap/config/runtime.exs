@@ -35,14 +35,24 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
+  behind_proxy = System.get_env("BEHIND_PROXY") == "true"
 
   config :ltzf_ap, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   # Default backend URL for the login screen
   config :ltzf_ap, :default_backend_url, System.get_env("DEFAULT_BACKEND_URL")
 
+  # Disable force_ssl when behind a reverse proxy
+  if behind_proxy do
+    config :ltzf_ap, LtzfApWeb.Endpoint,
+      force_ssl: false,
+      check_origin: false
+  end
+
+
+
   config :ltzf_ap, LtzfApWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
+    url: [host: host, port: 80, scheme: "http", path: "/"],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
@@ -51,7 +61,11 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: port
     ],
-    secret_key_base: secret_key_base
+    secret_key_base: secret_key_base,
+    # Trust proxy headers for reverse proxy setup
+    trust_proxy_headers: true,
+    # Include cache manifest for digested assets
+    cache_static_manifest: "/app/priv/static/cache_manifest.json"
 
   # ## SSL Support
   #
