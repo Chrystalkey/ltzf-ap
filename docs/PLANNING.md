@@ -41,7 +41,7 @@ The login page should display two input fields:
 2. An input field for the API Key
     1. should be protected with a side-button to reveal/hide
 
-As well as a login button. The login button should check the validity of the key with the `/api/v1/auth/status`.
+As well as a login button. The login button should check the validity of the key with the `/api/v2/auth/status`.
 A key is valid, if it's authorization level is Keyadder or Admin. Otherwise the check fails.
 On successful login, the page should redirect to the dashboard.
 
@@ -222,7 +222,7 @@ TODO; Insert empty placeholder page
 **Authentication Flow**
 1. User enters backend URL and API key
 2. System validates connectivity with `/ping`
-3. System validates API key with `/api/v1/auth/status`
+3. System validates API key with `/api/v2/auth/status`
 4. On success, creates encrypted session
 5. Redirects to dashboard with session token
 

@@ -32,6 +32,7 @@ import ApiHook from "./hooks/api_hook.js"
 import LoginHook from "./hooks/login_hook.js"
 import AddValueHook from "./hooks/add_value_hook.js"
 import EditFieldHook from "./hooks/edit_field_hook.js"
+import FormSubmitHook from "./hooks/form_submit_hook.js"
 
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
@@ -42,7 +43,8 @@ let liveSocket = new LiveSocket("/live", Socket, {
     ApiHook,
     LoginHook,
     AddValueHook,
-    EditFieldHook
+    EditFieldHook,
+    FormSubmitHook
   }
 })
 

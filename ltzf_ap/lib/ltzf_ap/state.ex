@@ -446,7 +446,9 @@ defmodule LtzfAp.State do
   def has_changes?(%VorgangDetailState{vorgang: vorgang, original_vorgang: original_vorgang}) do
     case {vorgang, original_vorgang} do
       {nil, _} -> false
-      {_, nil} -> false
+      {v, nil} when is_map(v) ->
+        # For new vorgangs (original_vorgang is nil), check if there's any meaningful data
+        has_meaningful_data?(v)
       {v, o} ->
         case Jason.encode(v) do
           {:ok, v_json} ->
@@ -474,6 +476,35 @@ defmodule LtzfAp.State do
   """
   @spec can_undo?(VorgangDetailState.t()) :: boolean()
   def can_undo?(state), do: has_changes?(state)
+
+  @doc """
+  Checks if a vorgang has meaningful data (not just empty fields).
+  """
+  @spec has_meaningful_data?(map()) :: boolean()
+  defp has_meaningful_data?(vorgang) do
+    # Check if any of the main fields have content
+    has_content?(vorgang["titel"]) or
+    has_content?(vorgang["kurztitel"]) or
+    has_content?(vorgang["typ"]) or
+    has_content?(vorgang["wahlperiode"]) or
+    has_content?(vorgang["verfassungsaendernd"]) or
+    has_content?(vorgang["ids"]) or
+    has_content?(vorgang["links"]) or
+    has_content?(vorgang["initiatoren"]) or
+    has_content?(vorgang["lobbyregister"]) or
+    has_content?(vorgang["stationen"])
+  end
+
+  @doc """
+  Checks if a value has meaningful content.
+  """
+  @spec has_content?(any()) :: boolean()
+  defp has_content?(nil), do: false
+  defp has_content?(""), do: false
+  defp has_content?([]), do: false
+  defp has_content?(value) when is_list(value), do: length(value) > 0
+  defp has_content?(value) when is_binary(value), do: String.trim(value) != ""
+  defp has_content?(_), do: true
 
   @doc """
   Checks if the session is valid.

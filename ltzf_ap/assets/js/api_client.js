@@ -123,7 +123,7 @@ class ApiClient {
   }
   
   async authStatus() {
-    const response = await this.request('/api/v1/auth/status');
+    const response = await this.request('/api/v2/auth/status');
     return response.data;
   }
   
@@ -224,7 +224,7 @@ class ApiClient {
   // Vorgaenge (Legislative Processes)
   async getVorgaenge(params = {}) {
     try {
-      const response = await this.request('/api/v1/vorgang', { params });
+      const response = await this.request('/api/v2/vorgang', { params });
       
       // Extract pagination info from headers
       const totalCount = response.headers['x-total-count'];
@@ -249,12 +249,12 @@ class ApiClient {
   }
   
   async getVorgangById(id) {
-    const response = await this.request(`/api/v1/vorgang/${id}`);
+    const response = await this.request(`/api/v2/vorgang/${id}`);
     return response.data;
   }
   
   async putVorgangById(id, vorgangData) {
-    const response = await this.request(`/api/v1/vorgang/${id}`, {
+    const response = await this.request(`/api/v2/vorgang/${id}`, {
       method: 'PUT',
       body: JSON.stringify(vorgangData)
     });
@@ -263,14 +263,14 @@ class ApiClient {
   
   // Documents
   async getDocumentById(apiId) {
-    const response = await this.request(`/api/v1/dokument/${apiId}`);
+    const response = await this.request(`/api/v2/dokument/${apiId}`);
     return response.data;
   }
   
   // Sitzungen (Sessions)
   async getSitzungen(params = {}) {
     try {
-      const response = await this.request('/api/v1/sitzung', { params });
+      const response = await this.request('/api/v2/sitzung', { params });
       
       // Extract pagination info from headers
       const totalCount = response.headers['x-total-count'];
@@ -297,13 +297,13 @@ class ApiClient {
   // Enumerations
   async getEnumerations(enumName, params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/enumeration/${enumName}${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/enumeration/${enumName}${queryString ? `?${queryString}` : ''}`;
     const response = await this.request(endpoint);
     return response.data;
   }
   
   async updateEnumeration(enumName, values, replacing = []) {
-    const response = await this.request(`/api/v1/enumeration/${enumName}`, {
+    const response = await this.request(`/api/v2/enumeration/${enumName}`, {
       method: 'PUT',
       body: JSON.stringify({ objects: values, replacing })
     });
@@ -312,7 +312,7 @@ class ApiClient {
   
   async deleteEnumerationValue(enumName, value) {
     const encodedValue = encodeURIComponent(value);
-    const response = await this.request(`/api/v1/enumeration/${enumName}/${encodedValue}`, {
+    const response = await this.request(`/api/v2/enumeration/${enumName}/${encodedValue}`, {
       method: 'DELETE'
     });
     return response.data;
@@ -321,13 +321,13 @@ class ApiClient {
   // Autoren and Gremien
   async getAutoren(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/autoren${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/autoren${queryString ? `?${queryString}` : ''}`;
     const response = await this.request(endpoint);
     return response.data;
   }
   
   async updateAutoren(autorenData) {
-    const response = await this.request('/api/v1/autoren', {
+    const response = await this.request('/api/v2/autoren', {
       method: 'PUT',
       body: JSON.stringify({
         objects: autorenData.objects,
@@ -339,20 +339,20 @@ class ApiClient {
   
   async deleteAutorenByParams(params) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/autoren${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/autoren${queryString ? `?${queryString}` : ''}`;
     const response = await this.request(endpoint, { method: 'DELETE' });
     return response.data;
   }
   
   async getGremien(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/gremien${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/gremien${queryString ? `?${queryString}` : ''}`;
     const response = await this.request(endpoint);
     return response.data;
   }
   
   async updateGremien(gremienData) {
-    const response = await this.request('/api/v1/gremien', {
+    const response = await this.request('/api/v2/gremien', {
       method: 'PUT',
       body: JSON.stringify({
         objects: gremienData.objects,
@@ -364,7 +364,7 @@ class ApiClient {
   
   async deleteGremienByParams(params) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/gremien${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/gremien${queryString ? `?${queryString}` : ''}`;
     const response = await this.request(endpoint, { method: 'DELETE' });
     return response.data;
   }
@@ -374,7 +374,7 @@ class ApiClient {
     const body = { scope };
     if (expiresAt) body.expires_at = expiresAt;
     
-    const response = await this.request('/api/v1/auth', {
+    const response = await this.request('/api/v2/auth', {
       method: 'POST',
       body: JSON.stringify(body)
     });
@@ -382,7 +382,7 @@ class ApiClient {
   }
   
   async deleteApiKey(keyToDelete) {
-    const response = await this.request('/api/v1/auth', {
+    const response = await this.request('/api/v2/auth', {
       method: 'DELETE',
       headers: { 'api-key-delete': keyToDelete }
     });

@@ -32,9 +32,28 @@ defmodule LtzfApWeb.VorgangDetailLive do
     state = State.update_session(socket.assigns, credentials)
     socket = assign(socket, Map.from_struct(state))
 
-    # Load vorgang data
-    socket = load_vorgang(socket)
-    {:noreply, socket}
+    # Load enumerations (needed for form options) but don't load vorgang yet
+    # We'll load the vorgang only when needed (reset action or initial load for existing vorgangs)
+    socket = load_enumerations(socket)
+
+    # Check if this is a new vorgang by checking if the ID is a UUID v7 format
+    # New vorgangs have UUID v7 IDs that don't exist in the backend yet
+    if is_new_vorgang_id?(socket.assigns.vorgang_id) do
+      # This is a new vorgang, create empty structure locally without backend check
+      empty_vorgang = create_empty_vorgang(socket.assigns.vorgang_id)
+
+      socket = assign(socket,
+        vorgang: empty_vorgang,
+        original_vorgang: nil,
+        loading: false,
+        error: nil
+      )
+      {:noreply, socket}
+    else
+      # This might be an existing vorgang, check if it exists in the backend
+      socket = check_and_load_vorgang(socket)
+      {:noreply, socket}
+    end
   end
 
   def handle_event("session_expired", %{"error" => error}, socket) do
@@ -55,9 +74,43 @@ defmodule LtzfApWeb.VorgangDetailLive do
     # API result is already a map with string keys, use it directly
     state = State.update_vorgang(socket.assigns, result)
     socket = assign(socket, Map.from_struct(state))
+    {:noreply, socket}
+  end
 
-    # Extract document IDs and fetch documents
-    socket = load_documents_from_vorgang(socket)
+  def handle_event("api_response", %{"request_id" => "vorgang_load", "error" => error}, socket) do
+    # Check if the error indicates the vorgang doesn't exist (404, Not found, etc.)
+    if String.contains?(error, "Not found") or String.contains?(error, "404") or String.contains?(error, "not found") do
+      # Vorgang doesn't exist, create empty vorgang structure for new vorgang
+      empty_vorgang = create_empty_vorgang(socket.assigns.vorgang_id)
+
+      # For new vorgangs, we don't set original_vorgang so it remains nil
+      # This will cause the save function to use postVorgang instead of putVorgangById
+      socket = assign(socket,
+        vorgang: empty_vorgang,
+        original_vorgang: nil,
+        loading: false,
+        error: nil
+      )
+      {:noreply, socket}
+    else
+      # Some other error occurred
+      state = State.set_error(socket.assigns, "Fehler beim Laden des Vorgangs: #{error}")
+      socket = assign(socket, Map.from_struct(state))
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("api_response", %{"request_id" => "vorgang_create", "result" => result}, socket) do
+    # Create successful, update the vorgang with the returned data and clear saving state
+    state = socket.assigns
+    |> State.set_save_success(true)
+    |> Map.put(:original_vorgang, deep_copy_vorgang(result))
+
+    socket = assign(socket, Map.from_struct(state))
+    socket = assign_vorgang(socket, result)
+
+    # Clear success message after 3 seconds
+    Process.send_after(self(), :clear_save_success, 3000)
     {:noreply, socket}
   end
 
@@ -71,6 +124,14 @@ defmodule LtzfApWeb.VorgangDetailLive do
 
     # Clear success message after 3 seconds
     Process.send_after(self(), :clear_save_success, 3000)
+    {:noreply, socket}
+  end
+
+  def handle_event("api_response", %{"request_id" => "vorgang_create", "error" => error}, socket) do
+    state = State.set_save_success(socket.assigns, false)
+    |> State.set_error("Erstellen fehlgeschlagen: #{error}")
+
+    socket = assign(socket, Map.from_struct(state))
     {:noreply, socket}
   end
 
@@ -89,17 +150,10 @@ defmodule LtzfApWeb.VorgangDetailLive do
   end
 
   def handle_event("api_response", %{"request_id" => request_id, "result" => result}, socket) do
-    # Handle document loading responses
-    if String.starts_with?(request_id, "document_load_") do
-      document_id = String.replace(request_id, "document_load_", "")
-      socket = handle_document_loaded(socket, document_id, result)
-      {:noreply, socket}
-    else
-      # Handle other API responses
-      state = State.set_error(socket.assigns, "Unknown request_id: #{request_id}")
-      socket = assign(socket, Map.from_struct(state))
-      {:noreply, socket}
-    end
+    # Handle other API responses
+    state = State.set_error(socket.assigns, "Unknown request_id: #{request_id}")
+    socket = assign(socket, Map.from_struct(state))
+    {:noreply, socket}
   end
 
   def handle_event("api_response", %{"request_id" => _request_id, "error" => error}, socket) do
@@ -162,7 +216,7 @@ defmodule LtzfApWeb.VorgangDetailLive do
   def handle_event("save", _params, socket) do
     case FormHelpers.validate_vorgang(socket.assigns.vorgang) do
       :ok ->
-        socket |> assign(Map.from_struct(State.set_saving(socket.assigns, true))) |> update_vorgang() |> then(&{:noreply, &1})
+        socket |> assign(Map.from_struct(State.set_saving(socket.assigns, true))) |> save_vorgang() |> then(&{:noreply, &1})
       {:error, errors} ->
         socket |> assign(Map.from_struct(State.set_error(socket.assigns, "Validation failed: #{Enum.join(errors, ", ")}"))) |> then(&{:noreply, &1})
     end
@@ -182,8 +236,22 @@ defmodule LtzfApWeb.VorgangDetailLive do
   end
 
   def handle_event("reset", _params, socket) do
-    # Redirect to the same page to trigger a page reload
-    {:noreply, push_redirect(socket, to: ~p"/vorgaenge/#{socket.assigns.vorgang_id}")}
+    # Reset logic: if vorgang exists in backend, reload it; otherwise create empty vorgang
+    if vorgang_exists_in_backend?(socket.assigns) do
+      # Vorgang exists in backend, reload it
+      socket = load_vorgang_from_backend(socket)
+      {:noreply, socket}
+    else
+      # Vorgang doesn't exist in backend, create empty vorgang locally
+      empty_vorgang = create_empty_vorgang(socket.assigns.vorgang_id)
+      socket = assign(socket,
+        vorgang: empty_vorgang,
+        original_vorgang: nil,
+        loading: false,
+        error: nil
+      )
+      {:noreply, socket}
+    end
   end
 
   # ============================================================================
@@ -191,12 +259,34 @@ defmodule LtzfApWeb.VorgangDetailLive do
   # ============================================================================
 
   def handle_event("add_id", _params, socket) do
-    socket = assign(socket, adding_id: %{typ: "", id: ""})
+    socket = assign(socket, adding_id: %{typ: "", id_value: ""})
     {:noreply, socket}
+  end
+
+  def handle_event("update_adding_id", params, socket) do
+    socket = assign(socket, adding_id: params)
+    {:noreply, socket}
+  end
+
+  def handle_event("form_submit", params, socket) do
+    # Handle form submission based on the form type
+    cond do
+      Map.has_key?(params, "typ") and Map.has_key?(params, "id_value") and params["typ"] != "" and params["id_value"] != "" ->
+        handle_event("save_new_id", params, socket)
+      Map.has_key?(params, "value") and not Map.has_key?(params, "typ") and params["value"] != "" ->
+        handle_event("save_new_link", params, socket)
+      true ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("add_link", _params, socket) do
     socket = assign(socket, adding_link: %{value: ""})
+    {:noreply, socket}
+  end
+
+  def handle_event("update_adding_link", params, socket) do
+    socket = assign(socket, adding_link: params)
     {:noreply, socket}
   end
 
@@ -251,7 +341,9 @@ defmodule LtzfApWeb.VorgangDetailLive do
           # Save current state to history before making changes
           socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
 
-          new_vorgang = add_initiator(socket.assigns.vorgang, new_autor)
+          # Convert Autor struct to map for storage
+          new_autor_map = Schemas.autor_to_map(new_autor)
+          new_vorgang = add_initiator(socket.assigns.vorgang, new_autor_map)
           socket = assign_vorgang(socket, new_vorgang)
           socket = assign(socket, adding_initiator: nil)
           {:noreply, socket}
@@ -633,19 +725,14 @@ defmodule LtzfApWeb.VorgangDetailLive do
     if params["organisation"] != "" do
       new_autor_struct = FormHelpers.form_params_to_autor(params)
 
-      # Convert struct to map with string keys
-      new_autor = %{
-        "person" => new_autor_struct.person,
-        "organisation" => new_autor_struct.organisation,
-        "fachgebiet" => new_autor_struct.fachgebiet,
-        "lobbyregister" => new_autor_struct.lobbyregister
-      }
-
-      # Validate the autor
-      case FormHelpers.validate_autor(new_autor) do
+      # Validate the autor struct
+      case FormHelpers.validate_autor(new_autor_struct) do
         :ok ->
           # Save current state to history before making changes
           socket = assign(socket, Map.from_struct(State.add_to_history(socket.assigns, socket.assigns.vorgang)))
+
+          # Convert Autor struct to map for storage
+          new_autor_map = Schemas.autor_to_map(new_autor_struct)
 
           # Add autor to the document
           stationen = socket.assigns.vorgang["stationen"] || []
@@ -654,7 +741,7 @@ defmodule LtzfApWeb.VorgangDetailLive do
           document = get_document_safely(station, document_type, document_index)
 
           autoren = document["autoren"] || []
-          updated_autoren = autoren ++ [new_autor]
+          updated_autoren = autoren ++ [new_autor_map]
           updated_document = Map.put(document, "autoren", updated_autoren)
 
           updated_station = case document_type do
@@ -765,8 +852,18 @@ defmodule LtzfApWeb.VorgangDetailLive do
     assign(socket, vorgang: vorgang)
   end
 
-  defp load_vorgang(socket) do
-    socket |> load_enumerations() |> push_event("api_request", %{
+  defp check_and_load_vorgang(socket) do
+    # Try to load the vorgang from backend to see if it exists
+    push_event(socket, "api_request", %{
+      method: "getVorgangById",
+      params: %{id: socket.assigns.vorgang_id},
+      request_id: "vorgang_load"
+    })
+  end
+
+  defp load_vorgang_from_backend(socket) do
+    # Load existing vorgang from backend
+    push_event(socket, "api_request", %{
       method: "getVorgangById",
       params: %{id: socket.assigns.vorgang_id},
       request_id: "vorgang_load"
@@ -779,75 +876,6 @@ defmodule LtzfApWeb.VorgangDetailLive do
       params: %{},
       request_id: "enumerations_load"
     })
-  end
-
-  # ============================================================================
-  # DOCUMENT LOADING FUNCTIONS
-  # ============================================================================
-
-    defp load_documents_from_vorgang(socket) do
-    # Extract all document IDs from stations
-    document_ids = extract_document_ids_from_vorgang(socket.assigns.vorgang)
-
-    # Store document IDs for later reference
-    socket = assign(socket, document_ids: document_ids)
-
-    # Fetch each unique document
-    Enum.reduce(document_ids, socket, fn {id, _type}, acc_socket ->
-      push_event(acc_socket, "api_request", %{
-        method: "getDocumentById",
-        params: %{apiId: id},
-        request_id: "document_load_#{id}"
-      })
-    end)
-  end
-
-    defp extract_document_ids_from_vorgang(vorgang) do
-    stationen = vorgang["stationen"] || []
-
-    result = Enum.flat_map(stationen, fn station ->
-      dokumente = station["dokumente"] || []
-      stellungnahmen = station["stellungnahmen"] || []
-
-            # Extract string IDs (UUIDs) from documents
-      dokumente_ids = dokumente |> Enum.filter(&is_binary/1) |> Enum.map(fn id -> {id, "dokumente"} end)
-      stellungnahmen_ids = stellungnahmen |> Enum.filter(&is_binary/1) |> Enum.map(fn id -> {id, "stellungnahmen"} end)
-
-      dokumente_ids ++ stellungnahmen_ids
-    end)
-    |> Enum.uniq_by(fn {id, _type} -> id end)
-
-    result
-  end
-
-    defp handle_document_loaded(socket, document_id, document_data) do
-    # Update the document in the appropriate station
-    stationen = socket.assigns.vorgang["stationen"] || []
-
-    updated_stationen = Enum.map(stationen, fn station ->
-      # Check dokumente
-      if station["dokumente"] do
-        # Find and replace the document with matching ID
-        updated_dokumente = Enum.map(station["dokumente"], fn doc ->
-          if is_binary(doc) and doc == document_id do
-            document_data
-          else
-            doc
-          end
-        end)
-
-        Map.put(station, "dokumente", updated_dokumente)
-      else
-        station
-      end
-    end)
-
-    new_vorgang = Map.put(socket.assigns.vorgang, "stationen", updated_stationen)
-
-    # Force a more explicit state update to ensure LiveView detects the change
-    socket = assign_vorgang(socket, new_vorgang)
-    socket = assign(socket, :document_updated, true)
-    socket
   end
 
   # Helper function to get a document safely (handles both ID strings and full objects)
@@ -866,6 +894,15 @@ defmodule LtzfApWeb.VorgangDetailLive do
     else
       document || %{}
     end
+  end
+
+  defp save_vorgang(socket) do
+    # Check if this is a new vorgang (no original vorgang data)
+    push_event(socket, "api_request", %{
+      method: "putVorgangById",
+      params: %{id: socket.assigns.vorgang_id, data: socket.assigns.vorgang},
+      request_id: "vorgang_update"
+    })
   end
 
   defp update_vorgang(socket) do
@@ -996,9 +1033,39 @@ defmodule LtzfApWeb.VorgangDetailLive do
   defp parse_integer_or_default(value, _default) when is_integer(value), do: value
   defp parse_integer_or_default(_value, default), do: default
 
+  # ============================================================================
+  # NEW VORGANG HELPER FUNCTIONS
+  # ============================================================================
 
+  defp create_empty_vorgang(vorgang_id) do
+    %{
+      "api_id" => vorgang_id,
+      "titel" => "",
+      "kurztitel" => "",
+      "typ" => "",
+      "wahlperiode" => nil,
+      "verfassungsaendernd" => false,
+      "ids" => [],
+      "links" => [],
+      "initiatoren" => [],
+      "lobbyregister" => [],
+      "stationen" => []
+    }
+  end
 
+  defp vorgang_exists_in_backend?(assigns) do
+    # Check if original_vorgang is set (indicating the vorgang was loaded from backend)
+    not is_nil(assigns.original_vorgang)
+  end
 
+  defp is_new_vorgang_id?(vorgang_id) do
+    # Check if the ID is a UUID v7 format (e.g., "123e4567-e89b-12d3-a456-426614174000")
+    # UUID v7 format: 8-4-4-4-12 characters with hyphens
+    case Regex.match?(~r/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, vorgang_id) do
+      true -> true
+      false -> false
+    end
+  end
 
   # ============================================================================
   # TEMPLATE HELPER FUNCTIONS

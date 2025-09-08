@@ -87,36 +87,36 @@ class ApiClient {
   }
   
   async authStatus() {
-    return this.request('/api/v1/auth/status');
+    return this.request('/api/v2/auth/status');
   }
   
   // Vorgaenge (Legislative Processes)
   async getVorgaenge(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/vorgang${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/vorgang${queryString ? `?${queryString}` : ''}`;
     return this.request(endpoint);
   }
   
   async getVorgangById(id) {
-    return this.request(`/api/v1/vorgang/${id}`);
+    return this.request(`/api/v2/vorgang/${id}`);
   }
   
   // Sitzungen (Sessions)
   async getSitzungen(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/sitzung${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/sitzung${queryString ? `?${queryString}` : ''}`;
     return this.request(endpoint);
   }
   
   // Enumerations
   async getEnumerations(enumName, params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/enumeration/${enumName}${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/enumeration/${enumName}${queryString ? `?${queryString}` : ''}`;
     return this.request(endpoint);
   }
   
   async updateEnumeration(enumName, values, replacing = []) {
-    return this.request(`/api/v1/enumeration/${enumName}`, {
+    return this.request(`/api/v2/enumeration/${enumName}`, {
       method: 'PUT',
       body: JSON.stringify({ objects: values, replacing })
     });
@@ -124,7 +124,7 @@ class ApiClient {
   
   async deleteEnumerationValue(enumName, value) {
     const encodedValue = encodeURIComponent(value);
-    return this.request(`/api/v1/enumeration/${enumName}/${encodedValue}`, {
+    return this.request(`/api/v2/enumeration/${enumName}/${encodedValue}`, {
       method: 'DELETE'
     });
   }
@@ -132,12 +132,12 @@ class ApiClient {
   // Autoren and Gremien
   async getAutoren(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/autoren${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/autoren${queryString ? `?${queryString}` : ''}`;
     return this.request(endpoint);
   }
   
   async updateAutoren(autorenData) {
-    return this.request('/api/v1/autoren', {
+    return this.request('/api/v2/autoren', {
       method: 'PUT',
       body: JSON.stringify({
         objects: autorenData.objects,
@@ -148,12 +148,12 @@ class ApiClient {
   
   async getGremien(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/api/v1/gremien${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v2/gremien${queryString ? `?${queryString}` : ''}`;
     return this.request(endpoint);
   }
   
   async updateGremien(gremienData) {
-    return this.request('/api/v1/gremien', {
+    return this.request('/api/v2/gremien', {
       method: 'PUT',
       body: JSON.stringify({
         objects: gremienData.objects,
@@ -167,14 +167,14 @@ class ApiClient {
     const body = { scope };
     if (expiresAt) body.expires_at = expiresAt;
     
-    return this.request('/api/v1/auth', {
+    return this.request('/api/v2/auth', {
       method: 'POST',
       body: JSON.stringify(body)
     });
   }
   
   async deleteApiKey(keyToDelete) {
-    return this.request('/api/v1/auth', {
+    return this.request('/api/v2/auth', {
       method: 'DELETE',
       headers: { 'api-key-delete': keyToDelete }
     });

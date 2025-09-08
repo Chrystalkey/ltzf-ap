@@ -48,6 +48,12 @@ defmodule LtzfApWeb.VorgaengeLive do
      |> redirect(to: ~p"/login")}
   end
 
+  def handle_event("add_new_vorgang", _params, socket) do
+    # Generate a new UUID for the vorgang
+    new_uuid = generate_uuid()
+    {:noreply, redirect(socket, to: ~p"/vorgaenge/#{new_uuid}")}
+  end
+
   def handle_event("load_vorgaenge", _params, socket) do
     # Only load if we have a valid session
     if socket.assigns.session_id do
@@ -183,5 +189,35 @@ defmodule LtzfApWeb.VorgaengeLive do
     end
   end
   defp parse_integer_header(_), do: nil
+
+  # Generate a UUID v7 string
+  defp generate_uuid do
+    # Get current timestamp in milliseconds since Unix epoch
+    timestamp_ms = System.system_time(:millisecond)
+
+    # Convert to 48-bit timestamp (first 6 bytes)
+    timestamp_bytes = <<timestamp_ms::48>>
+
+    # Generate 10 random bytes for the remaining part
+    random_bytes = :crypto.strong_rand_bytes(10)
+
+    # Combine timestamp and random bytes
+    uuid_bytes = timestamp_bytes <> random_bytes
+
+    # Encode as hex
+    uuid_hex = Base.encode16(uuid_bytes, case: :lower)
+
+    # Format as UUID v7: xxxxxxxx-xxxx-7xxx-yxxx-xxxxxxxxxxxx
+    # where x is any hex digit, 7 is the version, and y is one of 8, 9, A, or B
+    <<a::binary-size(8), b::binary-size(4), c::binary-size(4), d::binary-size(4), e::binary-size(12)>> = uuid_hex
+
+    # Ensure version 7 UUID format (7 in the third group)
+    c = "7" <> String.slice(c, 1, 3)
+
+    # Ensure variant bits (8, 9, A, or B in the fourth group)
+    d = "8" <> String.slice(d, 1, 3)
+
+    "#{a}-#{b}-#{c}-#{d}-#{e}"
+  end
 
 end

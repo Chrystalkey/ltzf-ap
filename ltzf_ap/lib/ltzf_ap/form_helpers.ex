@@ -185,7 +185,17 @@ defmodule LtzfAp.FormHelpers do
   @doc """
   Validates an Autor object and returns errors if any.
   """
-  @spec validate_autor(map()) :: :ok | {:error, [String.t()]}
+  @spec validate_autor(Schemas.Autor.t() | map()) :: :ok | {:error, [String.t()]}
+  def validate_autor(%Schemas.Autor{} = autor) do
+    errors = []
+    |> validate_required(autor.organisation, "organisation")
+
+    case errors do
+      [] -> :ok
+      _ -> {:error, errors}
+    end
+  end
+
   def validate_autor(autor) when is_map(autor) do
     errors = []
     |> validate_required(autor["organisation"], "organisation")
