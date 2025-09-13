@@ -3,9 +3,23 @@ defmodule LtzfApWeb.VorgaengeLive do
   import LtzfApWeb.SharedHeader
 
   def mount(_params, _session, socket) do
+    # Set default date filter to 2 days ago with timezone
+    default_since = DateTime.utc_now() |> DateTime.add(-2, :day) |> DateTime.to_iso8601()
+
     socket = assign(socket,
       vorgaenge: [],
-      filters: %{"page" => "1", "per_page" => "32"},
+      filters: %{
+        "page" => "1",
+        "per_page" => "32",
+        "since" => default_since,
+        "until" => "",
+        "p" => "",
+        "person" => "",
+        "fach" => "",
+        "org" => "",
+        "vgtyp" => "",
+        "wp" => ""
+      },
       loading: false,
       error: nil,
       pagination: %{},
@@ -83,6 +97,11 @@ defmodule LtzfApWeb.VorgaengeLive do
     {:noreply, assign(socket, vorgaenge: vorgaenge, pagination: pagination, loading: false, error: nil)}
   end
 
+  def handle_event("api_response", %{"request_id" => "vorgaenge_load", "error" => error, "success" => false}, socket) do
+    # Handle API error response
+    {:noreply, assign(socket, vorgaenge: [], loading: false, error: error)}
+  end
+
   def handle_event("api_error", %{"request_id" => "vorgaenge_load", "error" => error}, socket) do
     {:noreply, assign(socket, vorgaenge: [], loading: false, error: error)}
   end
@@ -90,6 +109,12 @@ defmodule LtzfApWeb.VorgaengeLive do
   def handle_event("filter_change", params, socket) do
     # Convert form params to filters map, excluding non-filter fields
     filters = Map.take(params, ["since", "until", "p", "wp", "person", "fach", "org", "vgtyp", "page", "per_page"])
+
+    # Convert datetime-local values to ISO 8601 format with timezone
+    filters = filters
+    |> convert_datetime_local_to_iso8601("since")
+    |> convert_datetime_local_to_iso8601("until")
+
     socket = assign(socket, filters: filters)
     send(self(), :load_vorgaenge)
     {:noreply, socket}
@@ -131,6 +156,43 @@ defmodule LtzfApWeb.VorgaengeLive do
   end
 
   defp format_date(_), do: "N/A"
+
+  # Convert datetime-local input value to ISO 8601 format with timezone
+  defp convert_datetime_local_to_iso8601(filters, field) when is_map(filters) do
+    case Map.get(filters, field) do
+      "" ->
+        # Empty string means no filter
+        Map.put(filters, field, "")
+      value when is_binary(value) and value != "" ->
+        # Convert "YYYY-MM-DDTHH:MM" to "YYYY-MM-DDTHH:MM:00.000Z"
+        case NaiveDateTime.from_iso8601("#{value}:00") do
+          {:ok, naive_datetime} ->
+            case DateTime.from_naive(naive_datetime, "Etc/UTC") do
+              {:ok, datetime} -> Map.put(filters, field, DateTime.to_iso8601(datetime))
+              {:error, _} -> filters
+            end
+          {:error, _} -> filters
+        end
+      _ ->
+        filters
+    end
+  end
+
+  # Convert ISO 8601 datetime to datetime-local format for display
+  defp convert_iso8601_to_datetime_local(iso8601_string) when is_binary(iso8601_string) do
+    case DateTime.from_iso8601(iso8601_string) do
+      {:ok, datetime, _} ->
+        # Convert to datetime-local format: YYYY-MM-DDTHH:MM
+        datetime
+        |> DateTime.to_naive()
+        |> NaiveDateTime.truncate(:second)
+        |> NaiveDateTime.to_string()
+        |> String.slice(0, 16)
+      {:error, _} ->
+        ""
+    end
+  end
+  defp convert_iso8601_to_datetime_local(_), do: ""
 
   defp truncate_text(text, max_length \\ 100)
   defp truncate_text(text, max_length) when is_binary(text) do

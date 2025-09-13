@@ -32,28 +32,13 @@ defmodule LtzfApWeb.VorgangDetailLive do
     state = State.update_session(socket.assigns, credentials)
     socket = assign(socket, Map.from_struct(state))
 
-    # Load enumerations (needed for form options) but don't load vorgang yet
-    # We'll load the vorgang only when needed (reset action or initial load for existing vorgangs)
+    # Load enumerations (needed for form options)
     socket = load_enumerations(socket)
 
-    # Check if this is a new vorgang by checking if the ID is a UUID v7 format
-    # New vorgangs have UUID v7 IDs that don't exist in the backend yet
-    if is_new_vorgang_id?(socket.assigns.vorgang_id) do
-      # This is a new vorgang, create empty structure locally without backend check
-      empty_vorgang = create_empty_vorgang(socket.assigns.vorgang_id)
-
-      socket = assign(socket,
-        vorgang: empty_vorgang,
-        original_vorgang: nil,
-        loading: false,
-        error: nil
-      )
-      {:noreply, socket}
-    else
-      # This might be an existing vorgang, check if it exists in the backend
-      socket = check_and_load_vorgang(socket)
-      {:noreply, socket}
-    end
+    # Always attempt to fetch the vorgang from backend to determine if it exists
+    # The API response handlers will discriminate between new and existing vorgangs
+    socket = check_and_load_vorgang(socket)
+    {:noreply, socket}
   end
 
   def handle_event("session_expired", %{"error" => error}, socket) do
@@ -1058,14 +1043,6 @@ defmodule LtzfApWeb.VorgangDetailLive do
     not is_nil(assigns.original_vorgang)
   end
 
-  defp is_new_vorgang_id?(vorgang_id) do
-    # Check if the ID is a UUID v7 format (e.g., "123e4567-e89b-12d3-a456-426614174000")
-    # UUID v7 format: 8-4-4-4-12 characters with hyphens
-    case Regex.match?(~r/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, vorgang_id) do
-      true -> true
-      false -> false
-    end
-  end
 
   # ============================================================================
   # TEMPLATE HELPER FUNCTIONS
